@@ -12,13 +12,15 @@
 - State "DONE"       from "TODO"       [2023-10-12 Do 07:10]
 **** DONE check that creichen/mu4e-tagging-categories-get and its counterpart do the right things
 - State "DONE"       from "TODO"       [2023-10-12 Do 07:10]
+*** DONE move my customisation out of the tagging mode description
+- State "DONE"       from "TODO"       [2023-10-12 Do 12:56]
+*** TODO convert rest of code to alist format
 *** TODO key and action for 'uncategorised'
 *** TODO search by tag
 *** TODO search by uncategorised
 *** TODO seach by negative flag
 *** TODO utilise mail window
 *** TODO text-align the tags-info box properly
-*** TODO move my customisation out of the tagging mode description
 *** TODO size info window automatically (might already be implemented?)
 *** TODO highlight current tags in tag window
 *** TODO suggest tags
