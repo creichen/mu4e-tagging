@@ -28,7 +28,6 @@
 (require 'dash)
 (require 'mu4e)
 (require 'compat-29)
-;(require 'mu4e-tagging-custom)
 
 (provide 'mu4e-tagging-mode)
 
@@ -441,58 +440,19 @@
     )
   )
 
-
-;(provide 'mu4e-tagging-custom)
-(define-widget 'creichen/mu4e-tag-type 'lazy
-  "A tags that is recognised by creichen/my4e-tagging-mode."
-  :offset 2
-  :tag "mu4e-tag"
-  :type '(plist :options ((:tag   string)
-			  (:short string)
-			  (:key   key)
-			  (:flag  boolean :doc "Non-exclusive, can be toggled on and off")
-			  (:foreground (choice (const :tag "none" nil)
-					       (color :tag "Foreground color")))
-			  (:background (choice (const :tag "none" nil)
-					       (color :tag "Background color")))
-			  (:weight (choice (const :tag "none" nil)
-					   (const "thin")
-					   (const "light")
-					   (const "normal")
-					   (const "medium")
-					   (const "bold")
-					   (const "heavy")
-					   (const "ultraheavy")))
-			  (:box (choice (const :tag "none" nil)
-					(const :tag "simple" t)
-					(color :tag "color")
-					(plist :options ((:line-width (choice (integer :tag "width+height (positive: extrude, negative: intrude)")
-									      (cons :tag "width . height")))
-							 (:color color)
-							 (:style (choice (const 'line)
-									 (const 'wave)))))))
-			  ))
-  )
-
-
 (defun creichen/mu4e-tagging-update-customize-reset (symbol value)
          (custom-initialize-reset symbol value)
          (creichen/mu4e-tagging-update-tags))
 
 (defcustom
   creichen/mu4e-tagging-tags
-  '((:tag "todo"                  :key "+" :short "+" :flag t :foreground "yellow" :background "black")
-    (:tag "urgent"                :key "!" :short "!" :flag t :foreground "red"  :background "yellow" :weight "extrabold")
-    (:tag "payment"               :key "$" :short "$" :flag t :foreground "pale green" :background "dark green")
-    (:tag "edaa40"         :key "4" :short "40" :foreground "yellow"  :background "#38342e" :box t)
-    (:tag "edap15"         :key "1" :short "15" :foreground "dodger blue"  :background "#38342e" :box t)
-    (:tag "msc"            :key "m" :short "MSc" :foreground "green"  :background "black" :box t)
-    (:tag "robot"          :key "r" :short "R" :foreground "gray70"  :background "navy" :box t)
-    (:tag "decl-analysis"  :key "d" :short "D" :foreground "gold"  :background "navy" :box t)
-    )
+  '(("todo" :key "+" :short "+" :flag t :foreground "yellow" :background "black")
+    ("spam" :key "s" :short "SPAM")
+    ("regular-mail" :key "m" :short "M"))
+
   "List of all tags examined by mu4e-tagging-mode.  Tags take the form of plists
    of the form (:tag TAGNAME :short SHORTNAME :key KEY :flag FLAG :foreground FG
-   :background BG).  creichen/mu4e-tagging-minor-mode will use
+   :background BG :weight WEIGHT :box BOX).  creichen/mu4e-tagging-minor-mode will use
    KEY to select this tag and SHORTNAME to display it in the
    mu4e-headers view.  Any occurrences of the tag will be
    rendered in the specified FG and BG colours.
@@ -501,7 +461,34 @@
    meaning that they are mutually exclusive.  Tags with :flag t
    are flags, meaning that any number of them can be 'added' to
    any category."
-  :type (repeat 'creichen/mu4e-tag-type)
+  :type '(alist :tag "Blah"
+		:value-type
+		(plist :options ((:tag   string)
+		    (:short string)
+		    (:key   key)
+		    (:flag  boolean :doc "Non-exclusive, can be toggled on and off")
+		    (:foreground (choice (const :tag "none" nil)
+					 (color :tag "Foreground color")))
+		    (:background (choice (const :tag "none" nil)
+					 (color :tag "Background color")))
+		    (:weight (choice (const :tag "none" nil)
+				     (const "ultra-thin")
+				     (const "light")
+				     (const "semi-light")
+				     (const "normal")
+				     (const "medium")
+				     (const "semi-bold")
+				     (const "bold")
+				     (const "ultra-bold")))
+		    (:box (choice (const :tag "none" nil)
+				  (const :tag "simple" t)
+				  (color :tag "color")
+				  (plist :options ((:line-width (choice (integer :tag "width+height (positive: extrude, negative: intrude)")
+									(cons :tag "width . height")))
+						   (:color color)
+						   (:style (choice (const 'line)
+								   (const 'wave)))))))
+		    )))
   :initialize 'creichen/mu4e-tagging-update-customize-reset
   :set (lambda (symbol value)
          (set-default symbol value)
