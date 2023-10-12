@@ -31,65 +31,61 @@
 
 (provide 'mu4e-tagging-mode)
 
-
-
 (defvar-keymap creichen/mu4e-tagging-minor-mode-keymap
   :doc "Primary keymap for creichen/mu4e-tagging-minor mode."
   )
 
-(defvar-keymap creichen/mu4e-tagging-minor-mode-tagging-auto-keymap
+(defvar-keymap creichen/mu4e-tagging-minor-mode-auto-keymap
   :doc "Auxiliary keymap for creichen/mu4e-tagging-minor mode:
         this map is automatically set up to manage tagging
         commands, but is overriden by
         creichen/mu4e-tagging-minor-mode-keymap."
   :parent creichen/mu4e-tagging-minor-mode-keymap
   )
-;; (defvar-key creichen/mu4e-tagging-minor-mode-keymap
-;;   (make-sparse-keymap)
-;;   "Primary keymap for creichen/mu4e-tagging-minor mode."
-;;   )
-
-;; (defvar creichen/mu4e-tagging-minor-mode-tagging-auto-keymap
-;;   (make-sparse-keymap)
-;;   "Auxiliary keymap for creichen/mu4e-tagging-minor mode:
-;;         this map is automatically set up to manage tagging
-;;         commands, but is overriden by
-;;         creichen/mu4e-tagging-minor-mode-keymap."
-;;   )
-
-;; (set-keymap-parent creichen/mu4e-tagging-minor-mode-tagging-auto-keymap
-;; 		   creichen/mu4e-tagging-minor-mode-keymap)
 
 (defun creichen/mu4e-tagging-minor-mode-clear-tagging-auto-keymap ()
-  (setcdr creichen/mu4e-tagging-minor-mode-tagging-auto-keymap (cdr (make-sparse-keymap)))
+  (setcdr creichen/mu4e-tagging-minor-mode-auto-keymap (cdr (make-sparse-keymap)))
   )
 
-;(set-keymap-parent creichen/mu4e-tagging-minor-mode-keymap creichen/mu4e-tagging-minor-mode-tagging-auto-keymap)
 
 (defvar creichen/mu4e-tagging-known-tags
   (make-hash-table :test 'equal)
   "All tags managed by creichen/mu4e-tagging-mode.  Automatically constructed from
    creichen/mu4e-tagging-tags.")
 
-(setq creichen/mu4e-tagging-reverse-key-table-tag (make-hash-table :test 'equal))
-(setq creichen/mu4e-tagging-reverse-key-table-untag (make-hash-table :test 'equal))
+;; ;; alist of normalised tags, with :short and :key guaranteed:
+;; (setq creichen/mu4e-tagging-tags-normalized nil)
 
-(defun creichen/mu4e-tagging-tags-get ()
-  (if (boundp 'creichen/mu4e-tagging-tags)
-      creichen/mu4e-tagging-tags
-    nil)
-  )
+;; (defun creichen/mu4e-tagging-normalize-tag (taginfo)
+;;   "Normalizes taginfo, which must be of the form (tagname . plist),
+;;    with plist being the permitted properties."
+
+
+(setq creichen/mu4e-tagging-reverse-key-table-tag
+      (make-hash-table :test 'equal))
+(setq creichen/mu4e-tagging-reverse-key-table-untag
+      (make-hash-table :test 'equal))
+
+;; (defun creichen/mu4e-tagging-tags-get ()
+;;   (if (boundp 'creichen/mu4e-tagging-tags)
+;;       creichen/mu4e-tagging-tags
+;;     nil)
+;;   )
+
+(setq creichen/mu4e-tagging-categories-var nil)
+(setq creichen/mu4e-tagging-tags-var nil)
 
 (defun creichen/mu4e-tagging-categories-get ()
-  (-filter (lambda (tag) (not (plist-get tag :flag)))
-	   (creichen/mu4e-tagging-tags-get))
+  creichen/mu4e-tagging-categories-var
+  ;; (-filter (lambda (tag) (not (plist-get tag :flag)))
+  ;; 	   (creichen/mu4e-tagging-tags-get))
   )
 
 (defun creichen/mu4e-tagging-flags-get ()
-  (-filter (lambda (tag) (plist-get tag :flag))
-	   (creichen/mu4e-tagging-tags-get))
+  creichen/mu4e-tagging-tags-var
+  ;; (-filter (lambda (tag) (plist-get tag :flag))
+  ;; 	   (creichen/mu4e-tagging-tags-get))
   )
-
 
 (defmacro creichen/mu4e-tagging-dotags (VARS &rest BODY)
   "Iterates over all tags.  (creichen/mu4e-tagging-dotags (TAGINFO TY) BODY)
@@ -110,7 +106,6 @@
 	)))
   )
 
-
 (defun creichen/mu4e-tagging-interceptor-tag ()
   (interactive)
   ;; (-let* (((taginfo ty) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
@@ -118,13 +113,12 @@
   ;; 	  (msg (mu4e-message-at-point)))
   ;;   (mu4e-action-retag-message msg (concat "+" tagname))
   ;;   )
-  (-let* (((taginfo ty) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
-	  (tag-name (plist-get taginfo :tag))
+  (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
 	  (msg (mu4e-message-at-point))
 	  (tag-add (concat "+" tag-name))
 	  (tag-remove (if (eq 'category ty)
 			  (mapconcat (lambda (n) (concat "-" n))
-				     (remove tag-name creichen/mu4e-tagging-known-category-tags)
+				     (remove tag-name (creichen/mu4e-tagging-known-category-tags))
 				     ",")
 			;; no tags to remove for tag-add
 			"")
@@ -150,8 +144,8 @@
     )
   )
 
-(defun creichen/mu4e-tagging-keyvec (taginfo)
-  (let* ((key-vec-or-string (plist-get taginfo :key))
+(defun creichen/mu4e-tagging-keyvec (tag-name key)
+  (let* ((key-vec-or-string key)
 	 (key-tag (cond ((vectorp key-vec-or-string)
 			 key-vec-or-string)
 			((characterp key-vec-or-string)
@@ -160,13 +154,14 @@
 			 (key-parse key-vec-or-string)))))
     (if (eq 0 (length key-tag))
 	(progn
-	  (message "Empty key binding (%s) for tag %s" key-vec-or-string (plist-get taginfo :tag))
+	  (message "Empty key binding (%s) for tag %s" key-vec-or-string tag-name)
 	  key-tag
 	  )
 	;; else all is well
 	key-tag
     ))
   )
+(kbd (string ?c))
 
 (defcustom
   creichen/mu4e-tagging-untag-prefix
@@ -174,46 +169,113 @@
   "Key or key combination to use as prefix for removing a tag."
   :type '(choice (vector :tag "Key sequence") (character :tag "Single key")))
 
+(defun creichen/mu4e-tagging-alloc-keys (tag-name tag-pbody)
+  "Allocates and binds keys for tag-name, ensuring uniqueness.
+  Returns tag-pbody with :key possibly updated.  Throws
+  'keybind-impossible if (1) :key in tag-pbody is already bound,
+  (2) :key is not in tag-pbody and the function couldn't guess an
+  unused binding, or (3) :key is somehow invalid."
+  (let* ((requested-key (plist-get tag-pbody :key))
+	 (str-key (cond
+		   ((null requested-key)
+		    nil)
+		   ((stringp requested-key)
+		    requested-key)
+		   (t
+		    (key-description (if (vectorp requested-key)
+					 requested-key
+				       ;; otherwise single character
+				       (vector requested-key))))))
+	 (key (or
+	       str-key
+	       (cl-loop for c across (concat tag-name
+					     (plist-get tag-pbody :short)
+					     "1234567890")
+			when (not (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap (kbd (string c))))
+			return (key-description (vector c)))))
+	 (prefix-key-vec (if (vectorp creichen/mu4e-tagging-untag-prefix)
+			    creichen/mu4e-tagging-untag-prefix
+			   (vector creichen/mu4e-tagging-untag-prefix))))
+    (when (or
+	   (null key)
+	   (equal (string-to-char key)
+		  creichen/mu4e-tagging-untag-prefix)
+	   (keymap-lookup creichen/mu4e-tagging-minor-mode-keymap (kbd key)))
+      (throw 'keybind-impossible (list tag-name :key requested-key))
+      )
+    ;; Otherwise the keybind is available
+    (let* ((key-tag (creichen/mu4e-tagging-keyvec tag-name key))
+	   (key-untag (vconcat prefix-key-vec key-tag))
+	   ;; update :key accordingly
+	   (tag-pbody-new (plist-put tag-pbody :key key-tag))
+	   (taginfo (cons tag-name tag-pbody-new))
+	   )
+      ;; Bind the key to call the generic interceptor functions
+      (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
+		  key-tag 'creichen/mu4e-tagging-interceptor-tag)
+      (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
+		  key-untag 'creichen/mu4e-tagging-interceptor-untag)
+
+      ;; Set up reverse lookup keymaps so the interceptors can figure out why they were called
+      (puthash key-tag taginfo
+	       creichen/mu4e-tagging-reverse-key-table-tag)
+      (puthash key-untag taginfo
+	       creichen/mu4e-tagging-reverse-key-table-untag)
+      ;; Return updated tag-body plist
+      tag-pbody-new
+      )
+    )
+)
+
 (defun creichen/mu4e-tagging-update-tags ()
+  "Extracts all tag information from the user specification and plugs in defaults as needed"
   (clrhash creichen/mu4e-tagging-reverse-key-table-tag)
   (clrhash creichen/mu4e-tagging-reverse-key-table-untag)
   (clrhash creichen/mu4e-tagging-known-tags)
-  (setq creichen/mu4e-tagging-known-category-tags nil)
+  ;(setq creichen/mu4e-tagging-known-category-tags nil)
   (creichen/mu4e-tagging-minor-mode-clear-tagging-auto-keymap)
   (let ((prefix-key-vec (if (vectorp creichen/mu4e-tagging-untag-prefix)
 			    creichen/mu4e-tagging-untag-prefix
 			  (vector creichen/mu4e-tagging-untag-prefix)))
-	(category-tags (mapcar (lambda (taginfo) (plist-get taginfo :tag))
-			       (creichen/mu4e-tagging-categories-get))))
-    (creichen/mu4e-tagging-dotags (taginfo ty)
-				  (when ty
-				    (let* ((tag-name (plist-get taginfo :tag))
-					   (key-tag (creichen/mu4e-tagging-keyvec taginfo))
-					   (key-untag (vconcat prefix-key-vec key-tag)))
-				      ;; collect all categories
-				      (when (eq 'category ty)
-					(setq creichen/mu4e-tagging-known-category-tags
-					      (cons tag-name creichen/mu4e-tagging-known-category-tags))
-					)
-				      ;; quick lookup for tag name
-				      (puthash tag-name
-					       (cons taginfo ty)
-					       creichen/mu4e-tagging-known-tags)
-				      ;; remember key bindings for interceptor
-				      (puthash key-tag (list taginfo ty)
-					       creichen/mu4e-tagging-reverse-key-table-tag)
-				      (puthash key-untag (list taginfo ty)
-					       creichen/mu4e-tagging-reverse-key-table-untag)
-				      ;; define key bindings
-				      (define-key creichen/mu4e-tagging-minor-mode-tagging-auto-keymap
-					key-tag 'creichen/mu4e-tagging-interceptor-tag)
-				      (define-key creichen/mu4e-tagging-minor-mode-tagging-auto-keymap
-					key-untag 'creichen/mu4e-tagging-interceptor-untag)
-				      )
-				    ))
-    )
-  )
+	(tag-aspecs-list (if (boundp 'creichen/mu4e-tagging-tags)
+			      creichen/mu4e-tagging-tags
+			    nil))
+	(tag-infos-categories nil)
+	(tag-infos-flags nil)
+	)
+    (dolist (tag-aspec tag-aspecs-list)
+      (-let* (((tag-name . tag-pbody-orig) tag-aspec)
+	      (tag-short-orig (plist-get tag-pbody-orig :short))
+	      (tag-short (if tag-short-orig
+			     tag-short-orig
+			   tag-name))
+	      (tag-pbody-pre (plist-put tag-pbody-orig :short tag-short))
+	      ;; alloc-keys ensures that tag-pbody contains the correct :key value
+	      (tag-pbody (creichen/mu4e-tagging-alloc-keys tag-name
+							   tag-pbody-pre))
+	      (is-flag (plist-get tag-pbody :flag))
+	      (tag-info (cons tag-name tag-pbody)))
+	(puthash tag-name tag-pbody creichen/mu4e-tagging-known-tags)
+	(if is-flag
+	    ; flag:
+	    (push tag-info tag-infos-flags)
+	  ; category:
+	  (progn
+	    ;(push tag-name creichen/mu4e-tagging-known-category-tags)
+	    (push tag-info tag-infos-categories)
+	    ))
+	)
+      )
+    ;; Store the results
+    (setq creichen/mu4e-tagging-categories-var (reverse tag-infos-categories))
+    (setq creichen/mu4e-tagging-flags-var (reverse tag-infos-flags))
+  ))
 
+
+(defun creichen/mu4e-tagging-known-category-tags ()
+  "All tags that are category tags (list of strings)."
+  (mapcar 'car creichen/mu4e-tagging-categories-var)
+  )
 
 (add-hook 'mu4e-headers-mode-hook
           (lambda ()
@@ -270,12 +332,14 @@
 
 (defun creichen/mu4e-tagging-type (tagname)
   "Determines if tagname is a tag for a 'category, for a 'flag, or not a known tag (NIL)"
-  (cdr (gethash tagname creichen/mu4e-tagging-known-tags '()))
+  (if (plist-get (creichen/mu4e-tagging-info tagname) :flag)
+      'flag
+    'category)
   )
 
 (defun creichen/mu4e-tagging-info (tagname)
   "Retrieves the creichen/mu4e-tag-type information for a given tag."
-  (car (gethash tagname creichen/mu4e-tagging-known-tags '()))
+  (cdr (gethash tagname creichen/mu4e-tagging-known-tags '()))
   )
 
 (defun creichen/mu4e-tagging-category-tag-p (tagname)
@@ -290,12 +354,12 @@
   (not (creichen/mu4e-tagging-type tagname))
   )
 
-(defun creichen/mu4e-tagging-propertized-name (tagname &rest short)
+(defun creichen/mu4e-tagging-propertized-name (tag-name &rest short)
   "Retrieves the propertized tag string for the given tag name.  If SHORT is non-NIL, uses :short instead of :tag."
-  (let* ((tinfo (creichen/mu4e-tagging-info tagname))
-	 (name (if tinfo
-		   (plist-get tinfo (if (and short (car short)) :short :tag))
-		 tagname))
+  (let* ((tinfo (creichen/mu4e-tagging-info tag-name))
+	 (name (if (and short (car short))
+		   (plist-get tinfo :short)
+		 tag-name))
 	 (fg (plist-get tinfo :foreground))
 	 (bg (plist-get tinfo :background))
 	 (box (plist-get tinfo :box))
@@ -374,11 +438,11 @@
   )
 
 (defun creichen/mu4e-tagging-format-tag-info (taginfo tagty)
-  (let* (
-	 (key-tag (creichen/mu4e-tagging-keyvec taginfo))
-	 (tagname (plist-get taginfo :tag))
-	 (short-tagstring (creichen/mu4e-tagging-propertized-name tagname t))
-	 (tagstring (creichen/mu4e-tagging-propertized-name tagname nil))
+  (-let* (((tag-name . tag-pinfo) tagainfo)
+	  (qkey-tag (creichen/mu4e-tagging-keyvec tag-pinfo))
+	  (tagname (plist-get tag-pinfo :tag))
+	  (short-tagstring (creichen/mu4e-tagging-propertized-name tag-name t))
+	  (tagstring (creichen/mu4e-tagging-propertized-name tag-name nil))
 	 )
     (format "%-8s %5s %s\n"
 	    (format "[%s]" (key-description key-tag))
@@ -421,7 +485,7 @@
 (define-minor-mode creichen/mu4e-tagging-minor-mode
   "A minor mode to quickly retag mails."
   :lighter " tag-mu4e"
-  :keymap creichen/mu4e-tagging-minor-mode-tagging-auto-keymap
+  :keymap creichen/mu4e-tagging-minor-mode-auto-keymap
 
   (if creichen/mu4e-tagging-minor-mode
       (progn
@@ -451,8 +515,8 @@
     ("spam" :key "s" :short "SPAM")
     ("regular-mail" :key "m" :short "M"))
 
-  "List of all tags examined by mu4e-tagging-mode.  Tags take the form of plists
-   of the form (:tag TAGNAME :short SHORTNAME :key KEY :flag FLAG :foreground FG
+  "List of all tags examined by mu4e-tagging-mode.  Tags take the form of alists whose values
+   are plists, of the form (TAGNAME :short SHORTNAME :key KEY :flag FLAG :foreground FG
    :background BG :weight WEIGHT :box BOX).  creichen/mu4e-tagging-minor-mode will use
    KEY to select this tag and SHORTNAME to display it in the
    mu4e-headers view.  Any occurrences of the tag will be
