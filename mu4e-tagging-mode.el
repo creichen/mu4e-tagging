@@ -1,9 +1,9 @@
 ;;; mu4e-tagging-mode.el --- minor mode for quick tagging in mu4e -*- lexical-binding: t -*-
 
-;; Copyright (C) 2011-2022 Dirk-Jan C. Binnema
+;; Copyright (C) 2023 Christoph Reichenbach
 
-;; Author: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
-;; Maintainer: Dirk-Jan C. Binnema <djcb@djcbsoftware.nl>
+;; Author: Christoph Reichenbach <creichen@creichen.net>
+;; Maintainer: Christoph Reichenbach <creichen@creichen.net>
 ;; Keywords: email
 
 ;; This file is not part of GNU Emacs.
@@ -66,7 +66,8 @@
 
 ;(set-keymap-parent creichen/mu4e-tagging-minor-mode-keymap creichen/mu4e-tagging-minor-mode-tagging-auto-keymap)
 
-(defvar creichen/mu4e-tagging-known-tags (make-hash-table :test 'equal)
+(defvar creichen/mu4e-tagging-known-tags
+  (make-hash-table :test 'equal)
   "All tags managed by creichen/mu4e-tagging-mode.  Automatically constructed from
    creichen/mu4e-tagging-tags.")
 
