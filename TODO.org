@@ -1,0 +1,57 @@
+* Main
+** TODO Show tags column with tag summaries
+*** DONE minor mode to bind retagging hotkeys to specific tagging commands in easily-updateable list in .emacs.  Distinguish 'exclusive' from 'nonexclusive' tags; auto-remove exclusive ones when tagging.
+- State "DONE"       from "TODO"       [2023-10-11 Wed 06:54]
+*** DONE flag tagging
+- State "DONE"       from "TODO"       [2023-10-11 Wed 07:30]
+*** DONE category tagging
+- State "DONE"       from "TODO"       [2023-10-11 Wed 07:30]
+*** DONE merge old and new
+- State "DONE"       from "TODO"       [2023-10-11 Mi 16:52]
+*** DONE refactor toggles
+- State "DONE"       from "TODO"       [2023-10-12 Do 07:10]
+**** DONE check that creichen/mu4e-tagging-categories-get and its counterpart do the right things
+- State "DONE"       from "TODO"       [2023-10-12 Do 07:10]
+*** TODO key and action for 'uncategorised'
+*** TODO search by tag
+*** TODO search by uncategorised
+*** TODO seach by negative flag
+*** TODO utilise mail window
+*** TODO text-align the tags-info box properly
+*** TODO move my customisation out of the tagging mode description
+*** TODO size info window automatically (might already be implemented?)
+*** TODO highlight current tags in tag window
+*** TODO suggest tags
+*** TODO track most recent "viewed tags" date per tag as reminder
+*** TODO track most recent "viewed" date individually for selected tags ("todo")
+*** TODO view tag stats
+* Notes
+** Bits and pieces about search
+
+#+BEGIN_SRC elisp
+  (defun creichen/printme (&rest all)
+    (interactive)
+    (message "printme: %s" all)
+    all)
+
+  (add-hook 'mu4e-search-hook 'creichen/printme)
+
+  (setq creichen/mu4e-tagging-reverse-key-table-search (make-hash-table :test 'equal))
+  (defun creichen/mu4e-tagging-search-tag (&rest tag)
+    "Searches for the given tag or tags on top of the most recent mu4e-search.
+     Arguments of the form :require A B C will require tags A, B, and C;
+     :no-category searches for lack of category tagging."
+    (mu4e)
+    (
+     mu4e-he
+     mu4e--search-last-query
+     )(lax-plist-get '(:bar "x" :foo "a" "b" :quux) :foo)
+
+
+  (defun creichen/mu4e-tagging-search-interceptor-tag (&rest tag)
+    (interactive)
+
+    )
+
+
+#+END_SRC
