@@ -23,6 +23,19 @@
 
 ;;; Commentary:
 
+;; Terminology:
+;; - tags: all the things managed by mu4e-tagging-mode, comprising
+;;   - flags: toggles that are independent of each other
+;;   - categories: selections that are mutually exclusive.
+;;
+;; Mails may violate the "categories" restriction and/or include unknown tags;
+;; we handle these cases gracefully.
+;;
+;; - A mail is:
+;;   - cagetorised ("categorized" in function/var definitions) iff it
+;;     has at least one category
+;;   - uncategorised ("uncategorized" in code) otherwise
+
 ;;; Code:
 
 (require 'dash)
@@ -51,40 +64,22 @@
 (defvar creichen/mu4e-tagging-known-tags
   (make-hash-table :test 'equal)
   "All tags managed by creichen/mu4e-tagging-mode.  Automatically constructed from
-   creichen/mu4e-tagging-tags.")
-
-;; ;; alist of normalised tags, with :short and :key guaranteed:
-;; (setq creichen/mu4e-tagging-tags-normalized nil)
-
-;; (defun creichen/mu4e-tagging-normalize-tag (taginfo)
-;;   "Normalizes taginfo, which must be of the form (tagname . plist),
-;;    with plist being the permitted properties."
-
+   creichen/mu4e-tagging-tags.  Maps to plist with tag properties.")
 
 (setq creichen/mu4e-tagging-reverse-key-table-tag
       (make-hash-table :test 'equal))
 (setq creichen/mu4e-tagging-reverse-key-table-untag
       (make-hash-table :test 'equal))
 
-;; (defun creichen/mu4e-tagging-tags-get ()
-;;   (if (boundp 'creichen/mu4e-tagging-tags)
-;;       creichen/mu4e-tagging-tags
-;;     nil)
-;;   )
-
 (setq creichen/mu4e-tagging-categories-var nil)
 (setq creichen/mu4e-tagging-flags-var nil)
 
 (defun creichen/mu4e-tagging-categories-get ()
   creichen/mu4e-tagging-categories-var
-  ;; (-filter (lambda (tag) (not (plist-get tag :flag)))
-  ;; 	   (creichen/mu4e-tagging-tags-get))
   )
 
 (defun creichen/mu4e-tagging-flags-get ()
   creichen/mu4e-tagging-flags-var
-  ;; (-filter (lambda (tag) (plist-get tag :flag))
-  ;; 	   (creichen/mu4e-tagging-tags-get))
   )
 
 (defmacro creichen/mu4e-tagging-dotags (VARS &rest BODY)
@@ -108,11 +103,6 @@
 
 (defun creichen/mu4e-tagging-interceptor-tag ()
   (interactive)
-  ;; (-let* (((taginfo ty) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
-  ;; 	  (tagname (plist-get taginfo :tag))
-  ;; 	  (msg (mu4e-message-at-point)))
-  ;;   (mu4e-action-retag-message msg (concat "+" tagname))
-  ;;   )
   (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
 	  (msg (mu4e-message-at-point))
 	  (tag-add (concat "+" tag-name))
@@ -144,7 +134,7 @@
     )
   )
 
-(defun creichen/mu4e-tagging-keyvec (tag-name key)
+(defun creichen/mu4e-tagging-keyvec (key)
   (setq debug-on-error t)
   (let* ((key-vec-or-string key)
 	 (key-tag (cond ((vectorp key-vec-or-string)
@@ -155,7 +145,7 @@
 			 (key-parse key-vec-or-string)))))
     (if (eq 0 (length key-tag))
 	(progn
-	  (message "Empty key binding (%s) for tag %s" key-vec-or-string tag-name)
+	  (message "Empty key binding (%s)" key-vec-or-string)
 	  key-tag
 	  )
 	;; else all is well
@@ -165,9 +155,21 @@
 
 (defcustom
   creichen/mu4e-tagging-untag-prefix
-  ?-
+  "-"
   "Key or key combination to use as prefix for removing a tag."
-  :type '(choice (vector :tag "Key sequence") (character :tag "Single key")))
+  :type 'key)
+
+(defcustom
+  creichen/mu4e-tagging-query-prefix
+  "C-q"
+  "Key or key combination to use as prefix for tag search."
+  :type 'key)
+
+(defcustom
+  creichen/mu4e-tagging-uncategorized-suffix
+  "C-d"
+  "Key or key combination to decategorise, and to query for uncategorised mails."
+  :type 'key)
 
 (defun creichen/mu4e-tagging-alloc-keys (tag-name tag-pbody)
   "Allocates and binds keys for tag-name, ensuring uniqueness.
@@ -193,9 +195,8 @@
 					     "1234567890")
 			when (not (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap (kbd (string c))))
 			return (key-description (vector c)))))
-	 (prefix-key-vec (if (vectorp creichen/mu4e-tagging-untag-prefix)
-			    creichen/mu4e-tagging-untag-prefix
-			   (vector creichen/mu4e-tagging-untag-prefix))))
+	 (prefix-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-untag-prefix))
+	 )
     (when (or
 	   (null key)
 	   (equal (string-to-char key)
@@ -204,7 +205,7 @@
       (throw 'keybind-impossible (list tag-name :key requested-key))
       )
     ;; Otherwise the keybind is available
-    (let* ((key-tag (creichen/mu4e-tagging-keyvec tag-name key))
+    (let* ((key-tag (creichen/mu4e-tagging-keyvec key))
 	   (key-untag (vconcat prefix-key-vec key-tag))
 	   ;; update :key accordingly
 	   (tag-pbody-new (plist-put tag-pbody :key key-tag))
@@ -226,6 +227,13 @@
       )
     )
 )
+
+(defun creichen/mu4e-tagging-alloc-default-keys ()
+  "Installs default dynamic key bindings"
+  (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
+	      (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
+	      'creichen/mu4e-tagging-decategorise)
+  )
 
 (defun creichen/mu4e-tagging-update-tags ()
   "Extracts all tag information from the user specification and plugs in defaults as needed"
@@ -266,6 +274,8 @@
 	    ))
 	)
       )
+    ;; Add the remaining dynamic key bindings
+    (creichen/mu4e-tagging-alloc-default-keys)
     ;; Store the results
     (setq creichen/mu4e-tagging-categories-var (reverse tag-infos-categories))
     (setq creichen/mu4e-tagging-flags-var (reverse tag-infos-flags))
@@ -276,10 +286,6 @@
   "All tags that are category tags (list of strings)."
   (mapcar 'car creichen/mu4e-tagging-categories-var)
   )
-
-(add-hook 'mu4e-headers-mode-hook
-          (lambda ()
-            (local-set-key (kbd "C-c t") 'creichen/mu4e-tagging-minor-mode)))
 
 (setq creichen/mu4e-tagging-tag-info-window nil)
 (setq creichen/mu4e-tagging-mail-info-window nil)
@@ -311,7 +317,7 @@
   )
 
 (defun creichen/mu4e-tagging-minor-mode-enable ()
-  (let ((tag-info-window (split-window-below (- -1 (hash-table-count creichen/mu4e-tagging-known-tags))))
+  (let ((tag-info-window (split-window-below (- -2 (hash-table-count creichen/mu4e-tagging-known-tags))))
         (mail-info-window (split-window-right -80)))
     (setq creichen/mu4e-tagging-tag-info-window tag-info-window)
     (setq creichen/mu4e-tagging-mail-info-window mail-info-window)
@@ -440,7 +446,7 @@
 (defun creichen/mu4e-tagging-format-tag-info (taginfo tagty)
   (setq debug-on-error t)
   (-let* (((tag-name . tag-pinfo) taginfo)
-	  (key-tag (creichen/mu4e-tagging-keyvec tag-name (plist-get tag-pinfo :key)))
+	  (key-tag (creichen/mu4e-tagging-keyvec (plist-get tag-pinfo :key)))
 	  (tagname (plist-get tag-pinfo :tag))
 	  (short-tagstring (creichen/mu4e-tagging-propertized-name tag-name t))
 	  (tagstring (creichen/mu4e-tagging-propertized-name tag-name nil))
@@ -501,10 +507,15 @@
 
 (defun creichen/mu4e-tagging-minor-mode-setup-default-bindings ()
   (let ((map creichen/mu4e-tagging-minor-mode-keymap))
-    (define-key map (kbd "C-c t") 'creichen/mu4e-tagging-minor-mode) ; switch off again
+    (define-key map (kbd "C-t") 'creichen/mu4e-tagging-minor-mode) ; switch off again
     (define-key map (kbd "q") 'creichen/mu4e-tagging-minor-mode)
+    (define-key map (kbd "ESC ESC ESC") 'creichen/mu4e-tagging-minor-mode)
     )
   )
+
+(add-hook 'mu4e-headers-mode-hook
+          (lambda ()
+            (local-set-key (kbd "C-t") 'creichen/mu4e-tagging-minor-mode)))
 
 (defun creichen/mu4e-tagging-update-customize-reset (symbol value)
          (custom-initialize-reset symbol value)

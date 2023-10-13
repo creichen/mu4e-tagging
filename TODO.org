@@ -14,11 +14,14 @@
 - State "DONE"       from "TODO"       [2023-10-12 Do 07:10]
 *** DONE move my customisation out of the tagging mode description
 - State "DONE"       from "TODO"       [2023-10-12 Do 12:56]
-*** TODO convert rest of code to alist format
+*** DONE convert rest of code to alist format
+- State "DONE"       from "TODO"       [2023-10-13 Fri 07:09]
+*** TODO untag-prefix to key format
 *** TODO key and action for 'uncategorised'
 *** TODO search by tag
 *** TODO search by uncategorised
 *** TODO seach by negative flag
+*** TODO disable search
 *** TODO utilise mail window
 *** TODO text-align the tags-info box properly
 *** TODO size info window automatically (might already be implemented?)
