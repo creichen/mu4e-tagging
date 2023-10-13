@@ -73,7 +73,7 @@
 ;;   )
 
 (setq creichen/mu4e-tagging-categories-var nil)
-(setq creichen/mu4e-tagging-tags-var nil)
+(setq creichen/mu4e-tagging-flags-var nil)
 
 (defun creichen/mu4e-tagging-categories-get ()
   creichen/mu4e-tagging-categories-var
@@ -82,7 +82,7 @@
   )
 
 (defun creichen/mu4e-tagging-flags-get ()
-  creichen/mu4e-tagging-tags-var
+  creichen/mu4e-tagging-flags-var
   ;; (-filter (lambda (tag) (plist-get tag :flag))
   ;; 	   (creichen/mu4e-tagging-tags-get))
   )
@@ -145,6 +145,7 @@
   )
 
 (defun creichen/mu4e-tagging-keyvec (tag-name key)
+  (setq debug-on-error t)
   (let* ((key-vec-or-string key)
 	 (key-tag (cond ((vectorp key-vec-or-string)
 			 key-vec-or-string)
@@ -158,10 +159,9 @@
 	  key-tag
 	  )
 	;; else all is well
-	key-tag
+      key-tag
     ))
   )
-(kbd (string ?c))
 
 (defcustom
   creichen/mu4e-tagging-untag-prefix
@@ -338,8 +338,8 @@
   )
 
 (defun creichen/mu4e-tagging-info (tagname)
-  "Retrieves the creichen/mu4e-tag-type information for a given tag."
-  (cdr (gethash tagname creichen/mu4e-tagging-known-tags '()))
+  "Retrieves the tag plist information for a given tag."
+  (gethash tagname creichen/mu4e-tagging-known-tags '())
   )
 
 (defun creichen/mu4e-tagging-category-tag-p (tagname)
@@ -438,16 +438,17 @@
   )
 
 (defun creichen/mu4e-tagging-format-tag-info (taginfo tagty)
-  (-let* (((tag-name . tag-pinfo) tagainfo)
-	  (qkey-tag (creichen/mu4e-tagging-keyvec tag-pinfo))
+  (setq debug-on-error t)
+  (-let* (((tag-name . tag-pinfo) taginfo)
+	  (key-tag (creichen/mu4e-tagging-keyvec tag-name (plist-get tag-pinfo :key)))
 	  (tagname (plist-get tag-pinfo :tag))
 	  (short-tagstring (creichen/mu4e-tagging-propertized-name tag-name t))
 	  (tagstring (creichen/mu4e-tagging-propertized-name tag-name nil))
-	 )
+	  )
     (format "%-8s %5s %s\n"
-	    (format "[%s]" (key-description key-tag))
-	    short-tagstring
-	    tagstring)
+ 	    (format "[%s]" (key-description key-tag))
+ 	    short-tagstring
+ 	    tagstring)
     )
   )
 

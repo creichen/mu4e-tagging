@@ -15,7 +15,7 @@
 	creichen/mu4e-tagging-minor-mode-auto-keymap
 	creichen/mu4e-tagging-known-tags
 	creichen/mu4e-tagging-categories-var
-	creichen/mu4e-tagging-tags-var
+	creichen/mu4e-tagging-flags-var
 	creichen/mu4e-tagging-reverse-key-table-tag
 	creichen/mu4e-tagging-reverse-key-table-untag
 	creichen/mu4e-tagging-untag-prefix
@@ -167,3 +167,29 @@
 		  (car (gethash [?p] creichen/mu4e-tagging-reverse-key-table-tag
 				))))
   ))
+
+(ert-deftest test-customise--deftags ()
+  "Customising the tags generates the correct set of category tags."
+  (protecting-state
+   (setup-test-tags)
+   (let ((results nil))
+     (creichen/mu4e-tagging-dotags (taginfo tagty)
+				   (if (null tagty)
+				       (push '(separator) results)
+				     (let* ((tag-name (car taginfo))
+					    (tag-plist (cdr taginfo)))
+				       (push (list tagty tag-name (plist-get tag-plist :short) (plist-get tag-plist :key))
+					     results)
+				       ))
+				   )
+     ;; results will be in reverse order
+     (should (equal '(
+		      (flag "particularly-lengthy" "M" [?p])
+		      (flag "a" "A" [?a])
+		      (separator)
+		      (category "chips" "chips" [?c])
+		      (category "ba" "ba" [?1])
+		      (category "bassoon" "bas" [?b])
+		      )
+		    results)
+   ))))
