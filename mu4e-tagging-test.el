@@ -23,6 +23,9 @@
 	creichen/mu4e-tagging-mail-info-window
 	creichen/mu4e-tagging-tag-info-window-buf
 	creichen/mu4e-tagging-mail-info-window-buf
+	creichen/mu4e-tagging-query-flags
+	creichen/mu4e-tagging-query-category
+	creichen/mu4e-tagging-query-rewrite-function-backup
 	))
 
 
@@ -193,3 +196,26 @@
 		      )
 		    results)
    ))))
+
+(ert-deftest test-query--mode-preservation ()
+  "Entering and exiting query mode alters and restores mu4e-query-rewrite-function."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (should (equal creichen/mu4e-tagging--query-rewrite mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-disable)
+     (should (equal old mu4e-query-rewrite-function))
+     )
+   )
+  )
+
+(ert-deftest test-query--mode-preservation ()
+  "Query mode does not alter queries by default."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (should (equal "(foo)" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )

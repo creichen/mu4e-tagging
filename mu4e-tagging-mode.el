@@ -138,7 +138,7 @@
 (defun creichen/mu4e-tagging-decategorize ()
   (interactive)
   (let ((tags-remove (mapconcat (lambda (n) (concat "-" n))
-			       (creichen/mu4e-tagging-known-category-tags)
+				(creichen/mu4e-tagging-known-category-tags)
 			       ","))
 	(msg (mu4e-message-at-point))
 	)
@@ -505,6 +505,71 @@
     (creichen/mu4e-tagging-update-mail-info-buf)
     (creichen/mu4e-tagging-update-tag-info-buf)
     ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Querying
+
+;; alist (name . '+ or '-)
+(setq creichen/mu4e-tagging-query-flags nil)
+;; category tag (string) or 'uncategorized
+(setq creichen/mu4e-tagging-query-category nil)
+;; backup for  mu4e-query-rewrite-function
+(setq creichen/mu4e-tagging-query-rewrite-function-backup nil)
+
+(defun creichen/mu4e-tagging--query-rewrite (initial-query)
+  (if (null creichen/mu4e-tagging-query-rewrite-function-backup)
+      (progn
+	(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
+	initial-query)
+    (let* ((query (creichen/mu4e-tagging-query-rewrite-function-backup initial-query))
+	   (cat-filter creichen/mu4e-tagging-query-category)
+	   (predicates-for-category (cond
+				     ((eq 'uncategorized cat-filter)
+				      (mapcar (lambda (cat) (concat "x:-" cat))  (creichen/mu4e-tagging-known-category-tags)))
+				     ((stringp cat-filter)
+				      (list (concat "x:+" cat-filter)))
+				     (t
+				      nil)))
+	   (predicates-for-flags nil)
+	   (predicates (append predicates-for-category predicates-for-flags))
+	   )
+      ;; see fixmes below
+      (string-join (cons
+		    (concat "(" query ")")
+		    predicates)
+		   " AND ")
+      ))
+  )
+
+(defun creichen/mu4e-tagging-query-submode-enable ()
+  ""
+  (interactive)
+  ;; removes query-rewrite function if enabled
+  (creichen/mu4e-tagging-query-submode-reset)
+  )
+
+(defun creichen/mu4e-tagging-query-submode-disable ()
+  ""
+  (interactive)
+  ;; removes the query-rewrite function
+  (creichen/mu4e-tagging-query-submode-reset)
+  ;; so now we should definitely be able to set it
+  (setq creichen/mu4e-tagging-query-rewrite-function-backup)
+  (setq mu4e-query-rewrite-function #'creichen/mu4e-tagging--query-rewrite)
+  )
+
+(defun creichen/mu4e-tagging-query-submode-reset ()
+  ""
+  (interactive)
+  (when creichen/mu4e-tagging-query-rewrite-function-backup
+    (setq mu4e-query-rewrite-function creichen/mu4e-tagging-query-rewrite-function-backup)
+    (setq creichen/mu4e-tagging-query-rewrite-function-backup nil))
+  (setq creichen/mu4e-tagging-query-flags nil)
+  (setq creichen/mu4e-tagging-query-category nil)
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Configuration interface
 
 (define-minor-mode creichen/mu4e-tagging-minor-mode
   "A minor mode to quickly retag mails."

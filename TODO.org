@@ -1,5 +1,6 @@
 * Main
-** TODO Show tags column with tag summaries
+** DONE Show tags column with tag summaries + initial tagging
+- State "DONE"       from "TODO"       [2023-10-13 Fr 07:49]
 *** DONE minor mode to bind retagging hotkeys to specific tagging commands in easily-updateable list in .emacs.  Distinguish 'exclusive' from 'nonexclusive' tags; auto-remove exclusive ones when tagging.
 - State "DONE"       from "TODO"       [2023-10-11 Wed 06:54]
 *** DONE flag tagging
@@ -20,18 +21,29 @@
 - State "DONE"       from "TODO"       [2023-10-13 Fr 07:27]
 *** DONE key and action for 'uncategorised'
 - State "DONE"       from "TODO"       [2023-10-13 Fr 07:40]
-*** TODO search by tag
+** TODO initial query information
+*** TODO search by category
 *** TODO search by uncategorised
+*** TODO search by flag
 *** TODO seach by negative flag
 *** TODO disable search
+*** TODO UI: enter query mode
+*** TODO UI: exit query mode
+*** TODO UI: set search category
+*** TODO UI: set no search category
+*** TODO UI: toggle flag
+*** TODO UI: toggle negative flag
+** TODO size info window automatically (might already be implemented?)
+** TODO manual decision support
 *** TODO utilise mail window
 *** TODO text-align the tags-info box properly
-*** TODO size info window automatically (might already be implemented?)
 *** TODO highlight current tags in tag window
-*** TODO suggest tags
+** TODO decision and inspection stats
 *** TODO track most recent "viewed tags" date per tag as reminder
 *** TODO track most recent "viewed" date individually for selected tags ("todo")
 *** TODO view tag stats
+** TODO automatic decision support
+*** TODO suggest tags
 * Notes
 ** Bits and pieces about search
 
@@ -60,5 +72,6 @@
 
     )
 
+(creichen/mu4e-tagging-query-filter "foo")
 
 #+END_SRC
