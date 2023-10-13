@@ -168,7 +168,7 @@
 				))))
   ))
 
-(ert-deftest test-customise--deftags ()
+(ert-deftest test-customise--dotags ()
   "Customising the tags generates the correct set of category tags."
   (protecting-state
    (setup-test-tags)
