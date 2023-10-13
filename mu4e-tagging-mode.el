@@ -406,7 +406,7 @@
 				  :function creichen/mu4e-tagging-render-tags)))
 
 (setq mu4e-headers-fields
-      '((:human-date   .  9)
+      '((:human-date   .  10)
         (:flags        .  6)
         (:short-tags   .  10)
         (:from         .  20)
@@ -530,7 +530,11 @@
 				      (list (concat "x:+" cat-filter)))
 				     (t
 				      nil)))
-	   (predicates-for-flags nil)
+	   (predicates-for-flags (mapcar (lambda (pair)
+					   (let ((tag (car pair))
+						 (dir (cdr pair)))
+					     (concat "x:" (symbol-name dir) tag)))
+					 creichen/mu4e-tagging-query-flags))
 	   (predicates (append predicates-for-category predicates-for-flags))
 	   )
       ;; see fixmes below

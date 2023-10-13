@@ -244,4 +244,67 @@
    )
   )
 
-;(setq mu4e-query-rewrite-function #'identity)
+(ert-deftest test-query--filter-positive-flag ()
+  "Query mode filtering for uncategorised messages."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (setq creichen/mu4e-tagging-query-category nil)
+     (setq creichen/mu4e-tagging-query-flags '(("a" . +)))
+     (should (equal "(foo) AND x:+a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )
+
+(ert-deftest test-query--filter-negative-flag ()
+  "Query mode filtering for uncategorised messages."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (setq creichen/mu4e-tagging-query-flags '(("a" . -)))
+     (should (equal "(foo) AND x:-a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )
+
+(ert-deftest test-query--filter-blended-flags ()
+  "Query mode filtering for uncategorised messages."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (setq creichen/mu4e-tagging-query-flags '(("particularly-lengthy" . -) ("a" . +)))
+     (should (equal "(foo) AND x:-particularly-lengthy AND x:+a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )
+
+(ert-deftest test-query--filter-flags-and-category ()
+  "Query mode filtering for uncategorised messages."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (setq creichen/mu4e-tagging-query-category "ba")
+     (setq creichen/mu4e-tagging-query-flags '(("particularly-lengthy" . -) ("a" . +)))
+     (should (equal "(foo) AND x:+ba AND x:-particularly-lengthy AND x:+a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )
+
+(ert-deftest test-query--filter-flags-and-uncategorized ()
+  "Query mode filtering for uncategorised messages."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (setq creichen/mu4e-tagging-query-category 'uncategorized)
+     (setq creichen/mu4e-tagging-query-flags '(("particularly-lengthy" . +) ("a" . -)))
+     (should (equal "(foo) AND x:-bassoon AND x:-ba AND x:-chips AND x:+particularly-lengthy AND x:-a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )
+
+
