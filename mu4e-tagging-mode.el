@@ -104,9 +104,10 @@
 (defun creichen/mu4e-tagging-interceptor-tag ()
   (interactive)
   (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
+	  (is-flag (plist-get taginfo :flag))
 	  (msg (mu4e-message-at-point))
 	  (tag-add (concat "+" tag-name))
-	  (tag-remove (if (eq 'category ty)
+	  (tag-remove (if (not is-flag)
 			  (mapconcat (lambda (n) (concat "-" n))
 				     (remove tag-name (creichen/mu4e-tagging-known-category-tags))
 				     ",")
@@ -131,6 +132,17 @@
 	  (tag-name (plist-get taginfo :tag))
 	  (msg (mu4e-message-at-point)))
     (mu4e-action-retag-message msg (concat "-" tag-name))
+    )
+  )
+
+(defun creichen/mu4e-tagging-decategorize ()
+  (interactive)
+  (let ((tags-remove (mapconcat (lambda (n) (concat "-" n))
+			       (creichen/mu4e-tagging-known-category-tags)
+			       ","))
+	(msg (mu4e-message-at-point))
+	)
+    (mu4e-action-retag-message msg tags-remove)
     )
   )
 
@@ -232,7 +244,7 @@
   "Installs default dynamic key bindings"
   (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
 	      (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
-	      'creichen/mu4e-tagging-decategorise)
+	      'creichen/mu4e-tagging-decategorize)
   )
 
 (defun creichen/mu4e-tagging-update-tags ()
@@ -338,9 +350,14 @@
 
 (defun creichen/mu4e-tagging-type (tagname)
   "Determines if tagname is a tag for a 'category, for a 'flag, or not a known tag (NIL)"
-  (if (plist-get (creichen/mu4e-tagging-info tagname) :flag)
-      'flag
-    'category)
+  (let ((plist (creichen/mu4e-tagging-info tagname)))
+    (cond ((null plist)
+	   nil)
+	  ((plist-get plist :flag)
+	   'flag)
+	  (t
+	   'category)
+	  ))
   )
 
 (defun creichen/mu4e-tagging-info (tagname)
@@ -462,7 +479,7 @@
   "Update the tagging-related tag-info buffer displayed to the user"
   (let ((buf (creichen/mu4e-tagging-tag-info-buf)))
     (when buf
-      (let ((msg t ));(mu4e-message-at-point)))
+      (let ((msg (mu4e-message-at-point)))
 	(save-excursion
 	  (with-current-buffer buf
 	    (erase-buffer)
