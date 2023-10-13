@@ -521,7 +521,7 @@
       (progn
 	(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
 	initial-query)
-    (let* ((query (creichen/mu4e-tagging-query-rewrite-function-backup initial-query))
+    (let* ((query (apply creichen/mu4e-tagging-query-rewrite-function-backup (list initial-query)))
 	   (cat-filter creichen/mu4e-tagging-query-category)
 	   (predicates-for-category (cond
 				     ((eq 'uncategorized cat-filter)
@@ -546,6 +546,9 @@
   (interactive)
   ;; removes query-rewrite function if enabled
   (creichen/mu4e-tagging-query-submode-reset)
+  ;; so now we should definitely be able to set it
+  (setq creichen/mu4e-tagging-query-rewrite-function-backup mu4e-query-rewrite-function)
+  (setq mu4e-query-rewrite-function #'creichen/mu4e-tagging--query-rewrite)
   )
 
 (defun creichen/mu4e-tagging-query-submode-disable ()
@@ -553,9 +556,6 @@
   (interactive)
   ;; removes the query-rewrite function
   (creichen/mu4e-tagging-query-submode-reset)
-  ;; so now we should definitely be able to set it
-  (setq creichen/mu4e-tagging-query-rewrite-function-backup)
-  (setq mu4e-query-rewrite-function #'creichen/mu4e-tagging--query-rewrite)
   )
 
 (defun creichen/mu4e-tagging-query-submode-reset ()

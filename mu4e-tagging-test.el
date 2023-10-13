@@ -202,14 +202,14 @@
   (protecting-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
-     (should (equal creichen/mu4e-tagging--query-rewrite mu4e-query-rewrite-function))
+     (should (equal #'creichen/mu4e-tagging--query-rewrite mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-disable)
      (should (equal old mu4e-query-rewrite-function))
      )
    )
   )
 
-(ert-deftest test-query--mode-preservation ()
+(ert-deftest test-query--filter-empty ()
   "Query mode does not alter queries by default."
   (protecting-state
    (let ((old mu4e-query-rewrite-function))
@@ -219,3 +219,29 @@
      )
    )
   )
+
+(ert-deftest test-query--filter-category ()
+  "Query mode filtering for one category."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (setq creichen/mu4e-tagging-query-category "ba")
+     (should (equal "(foo) AND x:+ba" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )
+
+(ert-deftest test-query--filter-uncategorized ()
+  "Query mode filtering for uncategorised messages."
+  (protecting-state
+   (let ((old mu4e-query-rewrite-function))
+     (creichen/mu4e-tagging-query-submode-enable)
+     (setq creichen/mu4e-tagging-query-category 'uncategorized)
+     (should (equal "(foo) AND x:-bassoon AND x:-ba AND x:-chips" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (creichen/mu4e-tagging-query-submode-disable)
+     )
+   )
+  )
+
+;(setq mu4e-query-rewrite-function #'identity)
