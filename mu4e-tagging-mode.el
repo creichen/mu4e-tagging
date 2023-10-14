@@ -554,7 +554,7 @@
 	   )
       (setq creichen/mu4e-tagging-query-rewrite-last-original-query initial-query)
       (setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query result)
-      (message "Query rewritten to: %s" result)
+      ; (message "Query rewritten to: %s" result)
       result
       ))
   )
@@ -670,12 +670,18 @@
   )
 
 (defun creichen/mu4e-tagging--query-flags-parse (pmtags)
-  "Parses a string that contains a list of query flag markers (\"+tag\" or \"-tag\"),
-   separated by `creichen/mu4e-tagging-query-separator` into an alist of tags
-   and + and - symbols, as used in `creichen/mu4e-tagging-query-flags`."
+  "Parses either a list or a string of query flag markers (e.g., \"+tag\" or \"-tag\").
+   If PMTAGS is a string, the markers must be separated by
+   `creichen/mu4e-tagging-query-separator`.
+   The result is an alist of tags and + and - symbols, as used in
+   `creichen/mu4e-tagging-query-flags`."
   (-filter #'identity ; remove any nil
 	   (mapcar #'creichen/mu4e-tagging--query-flag-parse
-		   (split-string pmtags creichen/mu4e-tagging-query-separator)))
+		   (if (listp pmtags)
+		       pmtags
+		     (split-string pmtags creichen/mu4e-tagging-query-separator))
+		   )
+	   )
   )
 
 
@@ -698,18 +704,19 @@
   "Selects the tags to filter for query-submode and enables query-submode, if needed.
    The parameter follows the same format as `creichen/mu4e-tagging--query-flags-parse`."
   (interactive
-   (completing-read-multiple "Flags to require / disallow: "
-		    (let ((flags (creichen/mu4e-tagging-flags-get)))
-		      (append (map (flag) (concat "+" flag))
-			      (map (flag) (concat "-" flag))))
-		    nil
-		    nil
-		    (creichen/mu4e-tagging--query-current-flags-string)
-		    'creichen/mu4e-tagging-query-flags-history)
+   (list
+    (completing-read-multiple "Flags to require / disallow: "
+			      (let ((flags (creichen/mu4e-tagging-flags-get)))
+				(append (mapcar (lambda (flag) (concat "+" (car flag))) flags)
+					(mapcar (lambda (flag) (concat "-" (car flag))) flags)))
+			      nil
+			      nil
+			      (creichen/mu4e-tagging--query-current-flags-string)
+			      'creichen/mu4e-tagging-query-flags-history))
    )
   (creichen/mu4e-tagging-query-submode-enable)
   (setq creichen/mu4e-tagging-query-flags
-	(creichen/mu4e-tagging--query-flags-parse category))
+	(creichen/mu4e-tagging--query-flags-parse tags))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
