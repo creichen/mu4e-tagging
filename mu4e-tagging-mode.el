@@ -517,6 +517,9 @@
 ;; backup for  mu4e-query-rewrite-function
 (setq creichen/mu4e-tagging-query-rewrite-function-backup nil)
 
+(setq creichen/mu4e-tagging-query-rewrite-last-original-query nil)
+(setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query nil)
+
 (defun creichen/mu4e-tagging--query-rewrite (initial-query)
   (if (null creichen/mu4e-tagging-query-rewrite-function-backup)
       (progn
@@ -526,24 +529,42 @@
 	   (cat-filter creichen/mu4e-tagging-query-category)
 	   (predicates-for-category (cond
 				     ((eq 'uncategorized cat-filter)
-				      (mapcar (lambda (cat) (concat "x:-" cat))  (creichen/mu4e-tagging-known-category-tags)))
+				      (mapcar (lambda (cat) (concat "(NOT x:" cat ")"))  (creichen/mu4e-tagging-known-category-tags)))
 				     ((stringp cat-filter)
-				      (list (concat "x:+" cat-filter)))
+				      (list (concat "x:" cat-filter)))
 				     (t
 				      nil)))
 	   (predicates-for-flags (mapcar (lambda (pair)
-					   (let ((tag (car pair))
-						 (dir (cdr pair)))
-					     (concat "x:" (symbol-name dir) tag)))
+					   (let* ((tag (car pair))
+						  (q (concat "x:" tag))
+						  (dir (cdr pair))
+						  )
+					     (if (eq '+ dir)
+						 q
+					       (concat "(NOT " q ")"))
+					     )
+					   )
 					 creichen/mu4e-tagging-query-flags))
 	   (predicates (append predicates-for-category predicates-for-flags))
-	   )
-      ;; see fixmes below
-      (string-join (cons
+	   (result (string-join (cons
 		    (concat "(" query ")")
 		    predicates)
-		   " AND ")
+		   " AND "))
+
+	   )
+      (setq creichen/mu4e-tagging-query-rewrite-last-original-query initial-query)
+      (setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query result)
+      (message "Query rewritten to: %s" result)
+      result
       ))
+  )
+
+(defun creichen/mu4e-tagging--query-rewrite-mu4e (initial-query)
+  ;; Ensure that we don't keep appending our rewrites to the same query
+  (if (eq initial-query creichen/mu4e-tagging-query-rewrite-last-rewritten-query)
+      (creichen/mu4e-tagging--query-rewrite creichen/mu4e-tagging-query-rewrite-last-original-query)
+    (creichen/mu4e-tagging--query-rewrite initial-query)
+    )
   )
 
 (defun creichen/mu4e-tagging-query-submode-p ()
@@ -560,7 +581,7 @@
     (creichen/mu4e-tagging-query-submode-reset)
     ;; so now we should definitely be able to set it
     (setq creichen/mu4e-tagging-query-rewrite-function-backup mu4e-query-rewrite-function)
-    (setq mu4e-query-rewrite-function #'creichen/mu4e-tagging--query-rewrite)
+    (setq mu4e-query-rewrite-function #'creichen/mu4e-tagging--query-rewrite-mu4e)
     )
   )
 
@@ -586,7 +607,7 @@
 (setq my-history nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Query mode UI
+;; Query mode M-x UI
 
 (defvar creichen/mu4e-tagging-query-separator ","
   "String that separates lists of items.  Must match the regex in `crm-separator`."

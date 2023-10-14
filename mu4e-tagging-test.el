@@ -27,6 +27,8 @@
 	creichen/mu4e-tagging-query-category
 	creichen/mu4e-tagging-query-rewrite-function-backup
 	creichen/mu4e-tagging-query-separator
+	creichen/mu4e-tagging-query-rewrite-last-original-query
+	creichen/mu4e-tagging-query-rewrite-last-rewritten-query
 	))
 
 
@@ -85,12 +87,19 @@
 
 (defmacro should-preserve-all-state (&rest BODY)
   "Run the test in BODY and assert that the state of creichen/mu4e-tagging is not altered."
-  (unwind-protect
-      (let ((backup (m4t-test-state-backup)))
+  (let ((backup (m4t-test-state-backup)))
+    (condition-case result
 	`(progn
 	   ,@BODY
 	   )
-	(should (equal backup (m4t-test-state-backup)))))
+      (:success (progn
+		  (should (equal backup (m4t-test-state-backup)))
+		  (m4t-test-state-restore backup)
+		  result)
+		)
+      (t (progn
+	   (m4t-test-state-restore backup)
+	   throw result))))
   )
 
 (ert-deftest test-re-customise-tagging-tags ()
@@ -208,7 +217,7 @@
   (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
-     (should (equal #'creichen/mu4e-tagging--query-rewrite mu4e-query-rewrite-function))
+     (should (equal #'creichen/mu4e-tagging--query-rewrite-mu4e mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-disable)
      (should (equal old mu4e-query-rewrite-function))
      )
@@ -232,7 +241,7 @@
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category "ba")
-     (should (equal "(foo) AND x:+ba" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (should (equal "(foo) AND x:ba" (creichen/mu4e-tagging--query-rewrite "foo")))
      (creichen/mu4e-tagging-query-submode-disable)
      )
    )
@@ -244,7 +253,7 @@
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category 'uncategorized)
-     (should (equal "(foo) AND x:-bassoon AND x:-ba AND x:-chips" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (should (equal "(foo) AND (NOT x:bassoon) AND (NOT x:ba) AND (NOT x:chips)" (creichen/mu4e-tagging--query-rewrite "foo")))
      (creichen/mu4e-tagging-query-submode-disable)
      )
    )
@@ -257,7 +266,7 @@
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category nil)
      (setq creichen/mu4e-tagging-query-flags '(("a" . +)))
-     (should (equal "(foo) AND x:+a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (should (equal "(foo) AND x:a" (creichen/mu4e-tagging--query-rewrite "foo")))
      (creichen/mu4e-tagging-query-submode-disable)
      )
    )
@@ -269,7 +278,7 @@
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-flags '(("a" . -)))
-     (should (equal "(foo) AND x:-a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (should (equal "(foo) AND (NOT x:a)" (creichen/mu4e-tagging--query-rewrite "foo")))
      (creichen/mu4e-tagging-query-submode-disable)
      )
    )
@@ -281,7 +290,7 @@
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-flags '(("particularly-lengthy" . -) ("a" . +)))
-     (should (equal "(foo) AND x:-particularly-lengthy AND x:+a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (should (equal "(foo) AND (NOT x:particularly-lengthy) AND x:a" (creichen/mu4e-tagging--query-rewrite "foo")))
      (creichen/mu4e-tagging-query-submode-disable)
      )
    )
@@ -294,7 +303,7 @@
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category "ba")
      (setq creichen/mu4e-tagging-query-flags '(("particularly-lengthy" . -) ("a" . +)))
-     (should (equal "(foo) AND x:+ba AND x:-particularly-lengthy AND x:+a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (should (equal "(foo) AND x:ba AND (NOT x:particularly-lengthy) AND x:a" (creichen/mu4e-tagging--query-rewrite "foo")))
      (creichen/mu4e-tagging-query-submode-disable)
      )
    )
@@ -307,7 +316,7 @@
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category 'uncategorized)
      (setq creichen/mu4e-tagging-query-flags '(("particularly-lengthy" . +) ("a" . -)))
-     (should (equal "(foo) AND x:-bassoon AND x:-ba AND x:-chips AND x:+particularly-lengthy AND x:-a" (creichen/mu4e-tagging--query-rewrite "foo")))
+     (should (equal "(foo) AND (NOT x:bassoon) AND (NOT x:ba) AND (NOT x:chips) AND x:particularly-lengthy AND (NOT x:a)" (creichen/mu4e-tagging--query-rewrite "foo")))
      (creichen/mu4e-tagging-query-submode-disable)
      )
    )
@@ -401,6 +410,7 @@
    (should (equal '(("particularly-lengthy" . -) ("a" . +))
 		  (creichen/mu4e-tagging--query-current-flags-string)))
    (creichen/mu4e-tagging-query-flags "-a")
+   (should (equal "a" "b"))
    (should (equal '(("a" . -))
 		  (creichen/mu4e-tagging--query-current-flags-string)))
    (creichen/mu4e-tagging-query-submode-disable)
