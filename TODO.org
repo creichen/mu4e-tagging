@@ -30,13 +30,15 @@
 - State "DONE"       from "TODO"       [2023-10-13 Fri 20:41]
 *** DONE filtering: seatch by negative flag(s)
 - State "DONE"       from "TODO"       [2023-10-13 Fri 20:41]
-*** TODO fixme: avoid aggregative multi-rewriting
-*** TODO fixme: auto-clear query-submode and tagging mode when they are interfering
+*** DONE fixme: avoid aggregative multi-rewriting
+- State "DONE"       from "TODO"       [2023-10-14 Sat 09:58]
+*** DONE disable search
+- State "DONE"       from "TODO"       [2023-10-14 Sat 09:58]
 *** TODO functionality: search by category
 *** TODO functionality: search by uncategorized
 *** TODO functionality: search by flag(s)
 *** TODO functionality: search by negative flag(s)
-*** TODO disable search
+*** TODO fixme: auto-clear query-submode and tagging mode when they are interfering
 *** TODO fix: tagging keymap precedence
 *** TODO UI: enter query mode
 *** TODO UI: exit query mode

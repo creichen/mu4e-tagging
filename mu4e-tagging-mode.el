@@ -632,9 +632,9 @@
 (defun creichen/mu4e-tagging--query-category-parse (name)
   "Parses query category string into internal query category representation."
   (cond
-   ((eq "" name)
+   ((equal "" name)
     nil)
-   ((eq "-" name)
+   ((equal "-" name)
     'uncategorized)
    (t
     name)))
@@ -656,13 +656,13 @@
 (defun creichen/mu4e-tagging--query-flag-parse (pmtag)
   "Parses a single flag specification of the form \"+foo\" or \"-foo\" into
    a pair (\"foo\" . '+) or (\"foo\" . '-), suitable for alist storage, or nil on error."
-  (if ((length pmtag) < 2)
+  (if (< (length pmtag) 2)
       nil
     (let ((dir-string (substring pmtag 0 1))
 	  (tag (substring pmtag 1)))
       (if (or
-	   (eq "-" dir-string)
-	   (eq "+" dir-string))
+	   (equal "-" dir-string)
+	   (equal "+" dir-string))
 	  ;; well-formed:
 	  (cons tag (intern dir-string))
 	)
@@ -674,7 +674,7 @@
    separated by `creichen/mu4e-tagging-query-separator` into an alist of tags
    and + and - symbols, as used in `creichen/mu4e-tagging-query-flags`."
   (-filter #'identity ; remove any nil
-	   (mapcar creichen/mu4e-tagging--query-flag-parse
+	   (mapcar #'creichen/mu4e-tagging--query-flag-parse
 		   (split-string pmtags creichen/mu4e-tagging-query-separator)))
   )
 
@@ -682,19 +682,21 @@
 (defun creichen/mu4e-tagging-query-category (category)
   "Selects the category to filter for query-submode and enables query-submode, if needed."
   (interactive
-   (completing-read "Tag category (\"-\" for uncategorised): " (cons "" (cons "-" (creichen/mu4e-tagging-categories-get)))
-		    nil
-		    t
-		    (creichen/mu4e-tagging--query-current-category-string)
-		    'creichen/mu4e-tagging-query-category-history)
-   )
+   (list
+    (completing-read "Tag category (\"-\" for uncategorised): " (cons "" (cons "-" (creichen/mu4e-tagging-categories-get)))
+		     nil
+		     t
+		     (creichen/mu4e-tagging--query-current-category-string)
+		     'creichen/mu4e-tagging-query-category-history)
+    ))
   (creichen/mu4e-tagging-query-submode-enable)
   (setq creichen/mu4e-tagging-query-category
 	(creichen/mu4e-tagging--query-category-parse category))
   )
 
-(defun creichen/mu4e-tagging-query-flags (category)
-  "Selects the tags to filter for query-submode and enables query-submode, if needed."
+(defun creichen/mu4e-tagging-query-flags (tags)
+  "Selects the tags to filter for query-submode and enables query-submode, if needed.
+   The parameter follows the same format as `creichen/mu4e-tagging--query-flags-parse`."
   (interactive
    (completing-read-multiple "Flags to require / disallow: "
 		    (let ((flags (creichen/mu4e-tagging-flags-get)))
@@ -707,7 +709,7 @@
    )
   (creichen/mu4e-tagging-query-submode-enable)
   (setq creichen/mu4e-tagging-query-flags
-	(creichen/mu4e-tagging--query-flags parse))
+	(creichen/mu4e-tagging--query-flags-parse category))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

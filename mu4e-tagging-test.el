@@ -363,17 +363,17 @@
    (should (equal nil
 		  (creichen/mu4e-tagging--query-flags-parse "")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flag-parse ",")))
+		  (creichen/mu4e-tagging--query-flags-parse ",")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flag-parse "foo,bar")))
+		  (creichen/mu4e-tagging--query-flags-parse "foo,bar")))
    (should (equal '(("foo" . -))
-		  (creichen/mu4e-tagging--query-flag-parse "-foo")))
+		  (creichen/mu4e-tagging--query-flags-parse "-foo")))
    (should (equal '(("bar" . +))
-		  (creichen/mu4e-tagging--query-flag-parse "+bar")))
+		  (creichen/mu4e-tagging--query-flags-parse "+bar")))
    (should (equal '(("bar" . +) ("foo" . -))
-		  (creichen/mu4e-tagging--query-flag-parse "+bar,-foo")))
+		  (creichen/mu4e-tagging--query-flags-parse "+bar,-foo")))
    (should (equal '(("bar" . +) ("foo" . -))
-		  (creichen/mu4e-tagging--query-flag-parse "+bar,error,-foo")))
+		  (creichen/mu4e-tagging--query-flags-parse "+bar,error,-foo")))
    )
   )
 
@@ -386,7 +386,8 @@
    (should (equal ""
 		  (creichen/mu4e-tagging--query-current-category-string)))
    (creichen/mu4e-tagging-query-category "-")
-   (should (equal 'uncategorized
+   (should (equal 'uncategorized creichen/mu4e-tagging-query-category))
+   (should (equal "-"
 		  (creichen/mu4e-tagging--query-current-category-string)))
    (creichen/mu4e-tagging-query-category "bassoon")
    (should (equal "bassoon"
@@ -398,21 +399,20 @@
 (ert-deftest test-query-support--set-read-flags ()
   "After setting the query flags, the flag query state stringification looks as expected."
   (should-preserve-all-state
-   (should (equal nil
+   (should (equal ""
 		  (creichen/mu4e-tagging--query-current-flags-string)))
    (creichen/mu4e-tagging-query-flags "")
    (should (equal nil
-		  (creichen/mu4e-tagging--query-current-flags-string)))
+		  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-flags "+a")
    (should (equal '(("a" . +))
-		  (creichen/mu4e-tagging--query-current-flags-string)))
+		  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-flags "-particularly-lengthy,+a")
    (should (equal '(("particularly-lengthy" . -) ("a" . +))
-		  (creichen/mu4e-tagging--query-current-flags-string)))
+		  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-flags "-a")
-   (should (equal "a" "b"))
    (should (equal '(("a" . -))
-		  (creichen/mu4e-tagging--query-current-flags-string)))
+		  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-submode-disable)
    )
   )
