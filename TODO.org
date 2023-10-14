@@ -44,7 +44,8 @@
 - State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
 *** DONE fixme: auto-clear query-submode and tagging mode when they are interfering
 - State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
-*** TODO fix: tagging keymap precedence
+*** DONE fix: tagging keymap precedence
+- State "DONE"       from "TODO"       [2023-10-14 Sat 15:15]
 *** TODO UI: enter query mode
 *** TODO UI: exit query mode
 *** TODO UI: set search category

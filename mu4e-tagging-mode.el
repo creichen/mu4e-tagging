@@ -1,5 +1,5 @@
-;;; mu4e-tagging-mode.el --- minor mode for quick tagging in mu4e -*- lexical-binding: t -*-
-
+bi;;; mu4e-tagging-mode.el --- minor mode for quick tagging in mu4e -*- lexical-binding: t -*-
+f
 ;; Copyright (C) 2023 Christoph Reichenbach
 
 ;; Author: Christoph Reichenbach <creichen@creichen.net>
@@ -129,8 +129,7 @@
 
 (defun creichen/mu4e-tagging-interceptor-untag ()
   (interactive)
-  (-let* (((taginfo ty) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-untag))
-	  (tag-name (plist-get taginfo :tag))
+  (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-untag))
 	  (msg (mu4e-message-at-point)))
     (mu4e-action-retag-message msg (concat "-" tag-name))
     )
@@ -174,7 +173,7 @@
 
 (defcustom
   creichen/mu4e-tagging-query-prefix
-  "C-q"
+  "C-w"
   "Key or key combination to use as prefix for tag search."
   :type 'key)
 
@@ -209,6 +208,7 @@
 			when (not (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap (kbd (string c))))
 			return (key-description (vector c)))))
 	 (prefix-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-untag-prefix))
+	 (query-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-query-prefix))
 	 )
     (when (or
 	   (null key)
@@ -220,32 +220,49 @@
     ;; Otherwise the keybind is available
     (let* ((key-tag (creichen/mu4e-tagging-keyvec key))
 	   (key-untag (vconcat prefix-key-vec key-tag))
+	   ;; keys for querying
+	   (key-query-require (vconcat query-key-vec key-tag))
+	   (key-query-block (vconcat query-key-vec prefix-key-vec key-tag))
 	   ;; update :key accordingly
 	   (tag-pbody-new (plist-put tag-pbody :key key-tag))
 	   (taginfo (cons tag-name tag-pbody-new))
 	   )
       ;; Bind the key to call the generic interceptor functions
       (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-		  key-tag 'creichen/mu4e-tagging-interceptor-tag)
+		  key-tag #'creichen/mu4e-tagging-interceptor-tag)
       (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-		  key-untag 'creichen/mu4e-tagging-interceptor-untag)
+		  key-untag #'creichen/mu4e-tagging-interceptor-untag)
+      (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
+		  key-query-require #'creichen/mu4e-tagging-interceptor-query-require)
+      (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
+		  key-query-block #'creichen/mu4e-tagging-interceptor-query-block)
 
       ;; Set up reverse lookup keymaps so the interceptors can figure out why they were called
       (puthash key-tag taginfo
 	       creichen/mu4e-tagging-reverse-key-table-tag)
       (puthash key-untag taginfo
 	       creichen/mu4e-tagging-reverse-key-table-untag)
+      (puthash key-query-require taginfo
+	       creichen/mu4e-tagging-reverse-key-table-tag)
+      (puthash key-query-block taginfo
+	       creichen/mu4e-tagging-reverse-key-table-tag)
       ;; Return updated tag-body plist
       tag-pbody-new
       )
     )
-)
+  )
 
 (defun creichen/mu4e-tagging-alloc-default-keys ()
   "Installs default dynamic key bindings"
   (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
 	      (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
 	      'creichen/mu4e-tagging-decategorize)
+  ;; (let ((query-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-query-prefix)))
+  ;;   (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
+  ;; 		(vconcat (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
+  ;; 			 'creichen/mu4e-tagging-decategorize)
+  ;; 		)
+  ;;   )
   )
 
 (defun creichen/mu4e-tagging-update-tags ()
@@ -330,8 +347,15 @@
   )
 
 (defun creichen/mu4e-tagging-minor-mode-enable ()
-  (let ((tag-info-window (split-window-below (- -2 (hash-table-count creichen/mu4e-tagging-known-tags))))
-        (mail-info-window (split-window-right -80)))
+  (let ((tag-info-window
+	 (if (window-live-p creichen/mu4e-tagging-tag-info-window)
+	     creichen/mu4e-tagging-tag-info-window
+	   (split-window-below (- -2 (hash-table-count creichen/mu4e-tagging-known-tags)))))
+        (mail-info-window
+	 (if (window-live-p creichen/mu4e-tagging-mail-info-window)
+	     creichen/mu4e-tagging-mail-info-window
+	   (split-window-right -80)))
+	)
     (setq creichen/mu4e-tagging-tag-info-window tag-info-window)
     (setq creichen/mu4e-tagging-mail-info-window mail-info-window)
     (creichen/mu4e-tagging-mail-info-buf)
@@ -342,8 +366,14 @@
 
 (defun creichen/mu4e-tagging-minor-mode-disable ()
   (creichen/mu4e-tagging-query-submode-disable)
-  (delete-window creichen/mu4e-tagging-tag-info-window)
-  (delete-window creichen/mu4e-tagging-mail-info-window)
+  (unwind-protect
+      (when (eq creichen/mu4e-tagging-tag-info-window-buf
+	      (window-buffer creichen/mu4e-tagging-tag-info-window))
+	  (delete-window creichen/mu4e-tagging-tag-info-window)))
+  (unwind-protect
+      (when (eq creichen/mu4e-tagging-mail-info-window-buf
+	      (window-buffer creichen/mu4e-tagging-mail-info-window))
+	  (delete-window creichen/mu4e-tagging-mail-info-window)))
   (setq creichen/mu4e-tagging-tag-info-window nil)
   (setq creichen/mu4e-tagging-mail-info-window nil)
   (setq creichen/mu4e-tagging-tag-info-window-buf nil)
@@ -509,7 +539,7 @@
     ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Querying
+;; Query submode
 
 ;; alist (name . '+ or '-)
 (setq creichen/mu4e-tagging-query-flags nil)
@@ -592,6 +622,7 @@
 (defun creichen/mu4e-tagging-query-submode-disable ()
   ""
   (interactive)
+  (message "Disabling ourselves")
   ;; removes the query-rewrite function
   (when (creichen/mu4e-tagging-query-submode-p)
     (creichen/mu4e-tagging-query-submode-reset)
@@ -602,9 +633,22 @@
   "Disables query-submode if either creichen/mu4e-tagging-mode itself has been
    disabled or the query hook processing hook is disabled."
   (interactive)
+  (message "Checking if we should auto-disable")
   (unless (and creichen/mu4e-tagging-minor-mode
 	       creichen/mu4e-tagging-query-rewrite-function-backup)
-    (creichen/mu4e-tagging-query-submode-disable))
+    (message "Time to die: %s %s  in  %s %s" creichen/mu4e-tagging-minor-mode creichen/mu4e-tagging-query-rewrite-function-backup
+	     (current-buffer) major-mode)
+    (creichen/mu4e-tagging-query-submode-disable)
+    (if (and (eq major-mode 'mu4e-headers-mode)
+	     (not creichen/mu4e-tagging-minor-mode)) ;; We got disabled by accident?
+	(message "But we should be alive!?  (tag: %s alive:%s)  (mail: %s alive:%s)"
+		 creichen/mu4e-tagging-tag-info-window
+		 (window-live-p creichen/mu4e-tagging-tag-info-window)
+		 creichen/mu4e-tagging-mail-info-window
+		 (window-live-p creichen/mu4e-tagging-mail-info-window))
+	(creichen/mu4e-tagging-minor-mode-enable)
+	)
+    )
   )
 
 (defun creichen/mu4e-tagging-query-submode-reset (&rest any)
@@ -620,7 +664,7 @@
 (setq my-history nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Query mode M-x UI
+;; Query submode M-x UI
 
 (defvar creichen/mu4e-tagging-query-separator ","
   "String that separates lists of items.  Must match the regex in `crm-separator`."
@@ -732,6 +776,72 @@
 	(creichen/mu4e-tagging--query-flags-parse tags))
   )
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Query submode quick UI
+
+(defun creichen/mu4e-tagging-query-rerun ()
+  (message "filtering: [%s] %s"
+	   (creichen/mu4e-tagging--query-current-flags-string)
+	   (creichen/mu4e-tagging--query-current-category-string))
+  )
+
+(defun creichen/mu4e-tagging-query-clear ()
+  (interactive)
+  (creichen/mu4e-tagging-query-submode-reset)
+  (creichen/mu4e-tagging-query-rerun)
+  )
+
+(defun creichen/mu4e-tagging-query-require-uncategorized ()
+  (interactive)
+  (creichen/mu4e-tagging-query-category "-")
+  (creichen/mu4e-tagging-query-rerun)
+  )
+
+(defun creichen/mu4e-tagging-interceptor-query-require ()
+  (interactive)
+  (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
+	  (is-flag (plist-get taginfo :flag))
+	  )
+    (if (not is-flag)
+	;; category?
+	(creichen/mu4e-tagging-query-category tag-name)
+	; flag?
+	(setq creichen/mu4e-tagging-query-flags
+	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
+		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
+		(if (eq '- last-bind)
+		    ;; From -flag to ignoring the flag
+		    filtered-flags
+		  ;; otherwise +flag
+		  (cons (cons tag-name '+) filtered-flags)
+		  )))
+	))
+  (creichen/mu4e-tagging-query-rerun)
+  )
+
+(defun creichen/mu4e-tagging-interceptor-query-block ()
+  (interactive)
+  (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
+	  (is-flag (plist taginfo :flag))
+	  )
+    (if (not is-flag)
+	;; category?
+	(creichen/mu4e-tagging-query-category "")
+	; flag?
+	(setq creichen/mu4e-tagging-query-flags
+	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
+		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
+		(if (eq '+ last-bind)
+		    ;; From +flag to ignoring the flag
+		    filtered-flags
+		  ;; otherwise -flag
+		  (cons (cons tag-name '-) filtered-flags)
+		  )))
+	))
+  (creichen/mu4e-tagging-query-rerun)
+  )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Configuration interface
 
@@ -753,9 +863,11 @@
 
 (defun creichen/mu4e-tagging-minor-mode-setup-default-bindings ()
   (let ((map creichen/mu4e-tagging-minor-mode-keymap))
-    (define-key map (kbd "C-t") 'creichen/mu4e-tagging-minor-mode) ; switch off again
-    (define-key map (kbd "q") 'creichen/mu4e-tagging-minor-mode)
-    (define-key map (kbd "ESC ESC ESC") 'creichen/mu4e-tagging-minor-mode)
+    (define-key map (kbd "C-t") #'creichen/mu4e-tagging-minor-mode-disable) ; switch off again
+    (define-key map (kbd "q") #'creichen/mu4e-tagging-query-require-uncategorized)
+    (define-key map (kbd "C-w C-w") #'creichen/mu4e-tagging-query-clear)
+    (define-key map (kbd "C-w C-d") #'creichen/mu4e-tagging-query-require-uncategorized)
+    (define-key map (kbd "ESC ESC ESC") #'creichen/mu4e-tagging-minor-mode)
     )
   )
 
@@ -795,14 +907,14 @@
 		    (:background (choice (const :tag "none" nil)
 					 (color :tag "Background color")))
 		    (:weight (choice (const :tag "none" nil)
-				     (const "ultra-thin")
+				     (const "ultrathin")
 				     (const "light")
-				     (const "semi-light")
+				     (const "semilight")
 				     (const "normal")
 				     (const "medium")
-				     (const "semi-bold")
+				     (const "semibold")
 				     (const "bold")
-				     (const "ultra-bold")))
+				     (const "ultrabold")))
 		    (:box (choice (const :tag "none" nil)
 				  (const :tag "simple" t)
 				  (color :tag "color")
@@ -830,4 +942,3 @@
 
 (creichen/mu4e-tagging-update-tags)
 (creichen/mu4e-tagging-minor-mode-setup-default-bindings)
-
