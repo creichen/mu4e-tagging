@@ -341,6 +341,7 @@
   )
 
 (defun creichen/mu4e-tagging-minor-mode-disable ()
+  (creichen/mu4e-tagging-query-submode-disable)
   (delete-window creichen/mu4e-tagging-tag-info-window)
   (delete-window creichen/mu4e-tagging-mail-info-window)
   (setq creichen/mu4e-tagging-tag-info-window nil)
@@ -594,6 +595,15 @@
     )
   )
 
+(defun creichen/mu4e-tagging--query-submode-auto-disable ()
+  "Disables query-submode if either creichen/mu4e-tagging-mode itself has been
+   disabled or the query hook processing hook is disabled."
+  (interactive)
+  (unless (and creichen/mu4e-tagging-minor-mode
+	       creichen/mu4e-tagging-query-rewrite-function-backup)
+    (creichen/mu4e-tagging-query-submode-disable))
+  )
+
 (defun creichen/mu4e-tagging-query-submode-reset ()
   ""
   (interactive)
@@ -805,6 +815,9 @@
          (creichen/mu4e-tagging-update-tags))
 
   )
+
+(add-hook 'mu4e-search-hook #'creichen/mu4e-tagging--query-submode-auto-disable)
+(add-hook 'mu4e-main-mode-hook #'creichen/mu4e-tagging-minor-mode-disable)
 
 (add-hook 'mu4e-message-changed-hook 'creichen/mu4e-tagging-mail-at-point-changed)
 
