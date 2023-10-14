@@ -26,6 +26,7 @@
 	creichen/mu4e-tagging-query-flags
 	creichen/mu4e-tagging-query-category
 	creichen/mu4e-tagging-query-rewrite-function-backup
+	creichen/mu4e-tagging-query-separator
 	))
 
 
@@ -82,11 +83,13 @@
 	   throw result))))
   )
 
-(defmacro should-preserve-all-state (BODY)
+(defmacro should-preserve-all-state (&rest BODY)
   "Run the test in BODY and assert that the state of creichen/mu4e-tagging is not altered."
   (unwind-protect
       (let ((backup (m4t-test-state-backup)))
-	BODY
+	`(progn
+	   ,@BODY
+	   )
 	(should (equal backup (m4t-test-state-backup)))))
   )
 
@@ -197,9 +200,12 @@
 		    results)
    ))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Query rewriting works as intended
+
 (ert-deftest test-query--mode-preservation ()
   "Entering and exiting query mode alters and restores mu4e-query-rewrite-function."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (should (equal #'creichen/mu4e-tagging--query-rewrite mu4e-query-rewrite-function))
@@ -211,7 +217,7 @@
 
 (ert-deftest test-query--filter-empty ()
   "Query mode does not alter queries by default."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (should (equal "(foo)" (creichen/mu4e-tagging--query-rewrite "foo")))
@@ -222,7 +228,7 @@
 
 (ert-deftest test-query--filter-category ()
   "Query mode filtering for one category."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category "ba")
@@ -234,7 +240,7 @@
 
 (ert-deftest test-query--filter-uncategorized ()
   "Query mode filtering for uncategorised messages."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category 'uncategorized)
@@ -246,7 +252,7 @@
 
 (ert-deftest test-query--filter-positive-flag ()
   "Query mode filtering for uncategorised messages."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category nil)
@@ -259,7 +265,7 @@
 
 (ert-deftest test-query--filter-negative-flag ()
   "Query mode filtering for uncategorised messages."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-flags '(("a" . -)))
@@ -271,7 +277,7 @@
 
 (ert-deftest test-query--filter-blended-flags ()
   "Query mode filtering for uncategorised messages."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-flags '(("particularly-lengthy" . -) ("a" . +)))
@@ -283,7 +289,7 @@
 
 (ert-deftest test-query--filter-flags-and-category ()
   "Query mode filtering for uncategorised messages."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category "ba")
@@ -296,7 +302,7 @@
 
 (ert-deftest test-query--filter-flags-and-uncategorized ()
   "Query mode filtering for uncategorised messages."
-  (protecting-state
+  (should-preserve-all-state
    (let ((old mu4e-query-rewrite-function))
      (creichen/mu4e-tagging-query-submode-enable)
      (setq creichen/mu4e-tagging-query-category 'uncategorized)
@@ -307,4 +313,96 @@
    )
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Query setter helper functions work as intended
 
+(ert-deftest test-query-support--parse-category ()
+  "Category strings are parsed correctly."
+  (should-preserve-all-state
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-category-parse "")))
+   (should (equal 'uncategorized
+		  (creichen/mu4e-tagging--query-category-parse "-")))
+   (should (equal "bassoon"
+		  (creichen/mu4e-tagging--query-category-parse "bassoon")))
+   )
+  )
+
+(ert-deftest test-query-support--parse-flag ()
+  "Singel flag specifications are parsed correctly."
+  (should-preserve-all-state
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flag-parse "")))
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flag-parse "=foo")))
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flag-parse "+")))
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flag-parse "-")))
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flag-parse "-")))
+   (should (equal '("foo" . -)
+		  (creichen/mu4e-tagging--query-flag-parse "-foo")))
+   (should (equal '("bar" . +)
+		  (creichen/mu4e-tagging--query-flag-parse "+bar")))
+   )
+  )
+
+(ert-deftest test-query-support--parse-flags ()
+  "Multi-flag specifications are parsed correctly."
+  (should-preserve-all-state
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flags-parse "")))
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flag-parse ",")))
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-flag-parse "foo,bar")))
+   (should (equal '(("foo" . -))
+		  (creichen/mu4e-tagging--query-flag-parse "-foo")))
+   (should (equal '(("bar" . +))
+		  (creichen/mu4e-tagging--query-flag-parse "+bar")))
+   (should (equal '(("bar" . +) ("foo" . -))
+		  (creichen/mu4e-tagging--query-flag-parse "+bar,-foo")))
+   (should (equal '(("bar" . +) ("foo" . -))
+		  (creichen/mu4e-tagging--query-flag-parse "+bar,error,-foo")))
+   )
+  )
+
+(ert-deftest test-query-support--set-read-category ()
+  "After setting the category, the category query state stringification looks as expected."
+  (should-preserve-all-state
+   (should (equal ""
+		  (creichen/mu4e-tagging--query-current-category-string)))
+   (creichen/mu4e-tagging-query-category "")
+   (should (equal ""
+		  (creichen/mu4e-tagging--query-current-category-string)))
+   (creichen/mu4e-tagging-query-category "-")
+   (should (equal 'uncategorized
+		  (creichen/mu4e-tagging--query-current-category-string)))
+   (creichen/mu4e-tagging-query-category "bassoon")
+   (should (equal "bassoon"
+		  (creichen/mu4e-tagging--query-current-category-string)))
+   (creichen/mu4e-tagging-query-submode-disable)
+   )
+  )
+
+(ert-deftest test-query-support--set-read-flags ()
+  "After setting the query flags, the flag query state stringification looks as expected."
+  (should-preserve-all-state
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-current-flags-string)))
+   (creichen/mu4e-tagging-query-flags "")
+   (should (equal nil
+		  (creichen/mu4e-tagging--query-current-flags-string)))
+   (creichen/mu4e-tagging-query-flags "+a")
+   (should (equal '(("a" . +))
+		  (creichen/mu4e-tagging--query-current-flags-string)))
+   (creichen/mu4e-tagging-query-flags "-particularly-lengthy,+a")
+   (should (equal '(("particularly-lengthy" . -) ("a" . +))
+		  (creichen/mu4e-tagging--query-current-flags-string)))
+   (creichen/mu4e-tagging-query-flags "-a")
+   (should (equal '(("a" . -))
+		  (creichen/mu4e-tagging--query-current-flags-string)))
+   (creichen/mu4e-tagging-query-submode-disable)
+   )
+  )

@@ -42,10 +42,13 @@
 *** TODO UI: set no search category
 *** TODO UI: toggle flag
 *** TODO UI: toggle negative flag
+** TODO cleanup
+*** TODO text-align the tags-info box properly
+*** TODO show search status info
+*** TODO interactive testing
 ** TODO size info window automatically (might already be implemented?)
 ** TODO manual decision support
 *** TODO utilise mail window
-*** TODO text-align the tags-info box properly
 *** TODO highlight current tags in tag window
 ** TODO decision and inspection stats
 *** TODO track most recent "viewed tags" date per tag as reminder
