@@ -526,7 +526,10 @@
       (progn
 	(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
 	initial-query)
-    (let* ((query (apply creichen/mu4e-tagging-query-rewrite-function-backup (list initial-query)))
+    (let* ((query (if (eq #'creichen/mu4e-tagging--query-rewrite
+			  creichen/mu4e-tagging-query-rewrite-function-backup) ;; might happen due to a bug or ill-timed package upgrade
+		      initial-query
+		    (apply creichen/mu4e-tagging-query-rewrite-function-backup (list initial-query))))
 	   (cat-filter creichen/mu4e-tagging-query-category)
 	   (predicates-for-category (cond
 				     ((eq 'uncategorized cat-filter)
@@ -595,7 +598,7 @@
     )
   )
 
-(defun creichen/mu4e-tagging--query-submode-auto-disable ()
+(defun creichen/mu4e-tagging--query-submode-auto-disable (&rest any)
   "Disables query-submode if either creichen/mu4e-tagging-mode itself has been
    disabled or the query hook processing hook is disabled."
   (interactive)
@@ -604,7 +607,7 @@
     (creichen/mu4e-tagging-query-submode-disable))
   )
 
-(defun creichen/mu4e-tagging-query-submode-reset ()
+(defun creichen/mu4e-tagging-query-submode-reset (&rest any)
   ""
   (interactive)
   (when creichen/mu4e-tagging-query-rewrite-function-backup

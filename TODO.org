@@ -34,11 +34,16 @@
 - State "DONE"       from "TODO"       [2023-10-14 Sat 09:58]
 *** DONE disable search
 - State "DONE"       from "TODO"       [2023-10-14 Sat 09:58]
-*** TODO functionality: search by category
-*** TODO functionality: search by uncategorized
-*** TODO functionality: search by flag(s)
-*** TODO functionality: search by negative flag(s)
-*** TODO fixme: auto-clear query-submode and tagging mode when they are interfering
+*** DONE functionality: search by category
+- State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
+*** DONE functionality: search by uncategorized
+- State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
+*** DONE functionality: search by flag(s)
+- State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
+*** DONE functionality: search by negative flag(s)
+- State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
+*** DONE fixme: auto-clear query-submode and tagging mode when they are interfering
+- State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
 *** TODO fix: tagging keymap precedence
 *** TODO UI: enter query mode
 *** TODO UI: exit query mode
