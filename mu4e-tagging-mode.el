@@ -1,5 +1,5 @@
-bi;;; mu4e-tagging-mode.el --- minor mode for quick tagging in mu4e -*- lexical-binding: t -*-
-f
+;;; mu4e-tagging-mode.el --- minor mode for quick tagging in mu4e -*- lexical-binding: t -*-
+
 ;; Copyright (C) 2023 Christoph Reichenbach
 
 ;; Author: Christoph Reichenbach <creichen@creichen.net>
@@ -361,6 +361,7 @@ f
     (creichen/mu4e-tagging-mail-info-buf)
     (creichen/mu4e-tagging-tag-info-buf)
     (creichen/mu4e-tagging-mail-at-point-changed)
+    (add-hook 'mu4e-search-hook #'creichen/mu4e-tagging--query-submode-auto-disable)
     )
   )
 
@@ -378,6 +379,7 @@ f
   (setq creichen/mu4e-tagging-mail-info-window nil)
   (setq creichen/mu4e-tagging-tag-info-window-buf nil)
   (setq creichen/mu4e-tagging-mail-info-window-buf nil)
+  (remove-hook 'mu4e-search-hook #'creichen/mu4e-tagging--query-submode-auto-disable)
   )
 
 (defun creichen/mu4e-tagging-type (tagname)
@@ -441,8 +443,8 @@ f
       '((:human-date   .  10)
         (:flags        .  6)
         (:short-tags   .  10)
-        (:from         .  20)
         (:mailing-list .  10)
+        (:from         .  20)
         (:subject      .  nil)
 	))
 
@@ -639,14 +641,14 @@ f
     (message "Time to die: %s %s  in  %s %s" creichen/mu4e-tagging-minor-mode creichen/mu4e-tagging-query-rewrite-function-backup
 	     (current-buffer) major-mode)
     (creichen/mu4e-tagging-query-submode-disable)
-    (if (and (eq major-mode 'mu4e-headers-mode)
+    (when (and (eq major-mode 'mu4e-headers-mode)
 	     (not creichen/mu4e-tagging-minor-mode)) ;; We got disabled by accident?
 	(message "But we should be alive!?  (tag: %s alive:%s)  (mail: %s alive:%s)"
 		 creichen/mu4e-tagging-tag-info-window
 		 (window-live-p creichen/mu4e-tagging-tag-info-window)
 		 creichen/mu4e-tagging-mail-info-window
 		 (window-live-p creichen/mu4e-tagging-mail-info-window))
-	(creichen/mu4e-tagging-minor-mode-enable)
+	(creichen/mu4e-tagging-minor-mode t)
 	)
     )
   )
@@ -914,7 +916,7 @@ f
 				     (const "medium")
 				     (const "semibold")
 				     (const "bold")
-				     (const "ultrabold")))
+				     (const 'ultra-bold)))
 		    (:box (choice (const :tag "none" nil)
 				  (const :tag "simple" t)
 				  (color :tag "color")
@@ -931,7 +933,6 @@ f
 
   )
 
-(add-hook 'mu4e-search-hook #'creichen/mu4e-tagging--query-submode-auto-disable)
 (add-hook 'mu4e-main-mode-hook #'creichen/mu4e-tagging-minor-mode-disable)
 
 (add-hook 'mu4e-message-changed-hook 'creichen/mu4e-tagging-mail-at-point-changed)
