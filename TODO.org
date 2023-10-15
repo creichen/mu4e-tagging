@@ -21,7 +21,8 @@
 - State "DONE"       from "TODO"       [2023-10-13 Fr 07:27]
 *** DONE key and action for 'uncategorised'
 - State "DONE"       from "TODO"       [2023-10-13 Fr 07:40]
-** TODO initial query information
+** DONE initial query information
+- State "DONE"       from "TODO"       [2023-10-15 So 16:59]
 *** DONE filtering: search by category
 - State "DONE"       from "TODO"       [2023-10-13 Fri 20:02]
 *** DONE filtering: search by uncategorised
@@ -61,11 +62,15 @@
 *** DONE UI: toggle negative flag
 - State "DONE"       from "TODO"       [2023-10-15 So 16:58]
 ** TODO cleanup
-*** TODO fix re-enable after previous disable
+*** DONE fix re-enable after previous disable
+- State "DONE"       from "TODO"       [2023-10-15 So 17:15]
+*** DONE fix gradual progression for flags
+- State "DONE"       from "TODO"       [2023-10-15 So 18:46]
 *** TODO fix :weight
 *** TODO text-align the tags-info box properly
 *** TODO show search status info
-*** TODO interactive testing
+*** TODO cleanup debug code
+*** TODO missing defun docs
 ** TODO size info window automatically (might already be implemented?)
 ** TODO manual decision support
 *** TODO utilise mail window

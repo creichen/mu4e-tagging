@@ -67,9 +67,9 @@
   "All tags managed by creichen/mu4e-tagging-mode.  Automatically constructed from
    creichen/mu4e-tagging-tags.  Maps to plist with tag properties.")
 
-(setq creichen/mu4e-tagging-reverse-key-table-tag
+(setq-default creichen/mu4e-tagging-reverse-key-table-tag
       (make-hash-table :test 'equal))
-(setq creichen/mu4e-tagging-reverse-key-table-untag
+(setq-default creichen/mu4e-tagging-reverse-key-table-untag
       (make-hash-table :test 'equal))
 
 (setq creichen/mu4e-tagging-categories-var nil)
@@ -346,8 +346,7 @@
       buf))
   )
 
-(defun creichen/mu4e-tagging-minor-mode-enable ()
-  (interactive)
+(defun creichen/mu4e-tagging-minor-mode-enable-handler ()
   (let ((tag-info-window
 	 (if (window-live-p creichen/mu4e-tagging-tag-info-window)
 	     creichen/mu4e-tagging-tag-info-window
@@ -366,8 +365,8 @@
     )
   )
 
-(defun creichen/mu4e-tagging-minor-mode-disable ()
-  (interactive)
+(defun creichen/mu4e-tagging-minor-mode-disable-handler ()
+  (remove-hook 'mu4e-search-hook #'creichen/mu4e-tagging--query-submode-auto-disable)
   (creichen/mu4e-tagging-query-submode-disable)
   (unwind-protect
       (when (eq creichen/mu4e-tagging-tag-info-window-buf
@@ -381,7 +380,18 @@
   (setq creichen/mu4e-tagging-mail-info-window nil)
   (setq creichen/mu4e-tagging-tag-info-window-buf nil)
   (setq creichen/mu4e-tagging-mail-info-window-buf nil)
-  (remove-hook 'mu4e-search-hook #'creichen/mu4e-tagging--query-submode-auto-disable)
+  )
+
+(defun creichen/mu4e-tagging-minor-mode-disable ()
+  "Ensure that creichen/mu4e-tagging-minor-mode is disabled."
+  (interactive)
+  (message "Trying to disable, currently: %s" creichen/mu4e-tagging-minor-mode)
+  (if creichen/mu4e-tagging-minor-mode
+      ;; switch mode off, which automatically calls disbale-handler
+      (creichen/mu4e-tagging-minor-mode 'toggle)
+    ;; no need to switch mode off, but must still call disbale-handler
+    (creichen/mu4e-tagging-minor-mode-disable-handler)
+    )
   )
 
 (defun creichen/mu4e-tagging-type (tagname)
@@ -645,16 +655,20 @@
 	       creichen/mu4e-tagging-query-rewrite-function-backup)
     (message "Time to die: %s %s  in  %s %s" creichen/mu4e-tagging-minor-mode creichen/mu4e-tagging-query-rewrite-function-backup
 	     (current-buffer) major-mode)
-    (creichen/mu4e-tagging-query-submode-disable)
-    (when (and (eq major-mode 'mu4e-headers-mode)
-	     (not creichen/mu4e-tagging-minor-mode)) ;; We got disabled by accident?
-	(message "But we should be alive!?  (tag: %s alive:%s)  (mail: %s alive:%s)"
-		 creichen/mu4e-tagging-tag-info-window
-		 (window-live-p creichen/mu4e-tagging-tag-info-window)
-		 creichen/mu4e-tagging-mail-info-window
-		 (window-live-p creichen/mu4e-tagging-mail-info-window))
-	(creichen/mu4e-tagging-minor-mode t)
-	)
+    (if (and (eq major-mode 'mu4e-headers-mode)
+	     (not creichen/mu4e-tagging-minor-mode))
+	;; We got disabled by accident?
+	(progn
+	  (message "But we should be alive!?  (tag: %s alive:%s)  (mail: %s alive:%s)"
+		   creichen/mu4e-tagging-tag-info-window
+		   (window-live-p creichen/mu4e-tagging-tag-info-window)
+		   creichen/mu4e-tagging-mail-info-window
+		   (window-live-p creichen/mu4e-tagging-mail-info-window))
+	  (creichen/mu4e-tagging-minor-mode t)
+	  )
+      ;; We really aren't needed any more
+      (creichen/mu4e-tagging-query-submode-disable)
+      )
     )
   )
 
@@ -823,6 +837,7 @@
 	(setq creichen/mu4e-tagging-query-flags
 	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
 		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
+		(message ":: for %s, last-bind = %s, special case: %s (from [%s <- %s])" tag-name last-bind (eq '- last-bind) filtered-flags creichen/mu4e-tagging-query-flags)
 		(if (eq '- last-bind)
 		    ;; From -flag to ignoring the flag
 		    filtered-flags
@@ -830,8 +845,10 @@
 		  (cons (cons tag-name '+) filtered-flags)
 		  )))
 	)))
+  (message "Value was: %s" creichen/mu4e-tagging-query-flags)
   (message "query-require triggering query rerun")
   (creichen/mu4e-tagging-query-rerun)
+  (message "Value is now: %s" creichen/mu4e-tagging-query-flags)
   )
 
 (defun creichen/mu4e-tagging-interceptor-query-block ()
@@ -848,6 +865,7 @@
 	(setq creichen/mu4e-tagging-query-flags
 	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
 		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
+		(message ":: for %s, last-bind = %s, special case: %s (from [%s <- %s])" tag-name last-bind (eq '+ last-bind) filtered-flags creichen/mu4e-tagging-query-flags)
 		(if (eq '+ last-bind)
 		    ;; From +flag to ignoring the flag
 		    filtered-flags
@@ -866,16 +884,18 @@
   :lighter " tag-mu4e"
   :keymap creichen/mu4e-tagging-minor-mode-keymap
 
+  (progn
+    (message "mu4e-tagging-minor-mode: pondering what to do")
   (if creichen/mu4e-tagging-minor-mode
       (progn
-	(creichen/mu4e-tagging-minor-mode-enable)
+	(creichen/mu4e-tagging-minor-mode-enable-handler)
 	(message "mu4e-tagging-minor-mode enabled")
 	)
     (progn
-      (creichen/mu4e-tagging-minor-mode-disable)
+      (creichen/mu4e-tagging-minor-mode-disable-handler)
       (message "mu4e-tagging-minor-mode disabled")
       ))
-  )
+  ))
 
 (defun creichen/mu4e-tagging-minor-mode-setup-default-bindings ()
   (let ((map creichen/mu4e-tagging-minor-mode-keymap))
