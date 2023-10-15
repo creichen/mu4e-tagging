@@ -45,16 +45,16 @@
 
 (provide 'mu4e-tagging-mode)
 
-(defvar-keymap creichen/mu4e-tagging-minor-mode-keymap
-  :doc "Primary keymap for creichen/mu4e-tagging-minor mode."
-  )
-
 (defvar-keymap creichen/mu4e-tagging-minor-mode-auto-keymap
   :doc "Auxiliary keymap for creichen/mu4e-tagging-minor mode:
         this map is automatically set up to manage tagging
         commands, but is overriden by
         creichen/mu4e-tagging-minor-mode-keymap."
-  :parent creichen/mu4e-tagging-minor-mode-keymap
+  )
+
+(defvar-keymap creichen/mu4e-tagging-minor-mode-keymap
+  :doc "Primary keymap for creichen/mu4e-tagging-minor mode."
+  :parent creichen/mu4e-tagging-minor-mode-auto-keymap
   )
 
 (defun creichen/mu4e-tagging-minor-mode-clear-tagging-auto-keymap ()
@@ -347,6 +347,7 @@
   )
 
 (defun creichen/mu4e-tagging-minor-mode-enable ()
+  (interactive)
   (let ((tag-info-window
 	 (if (window-live-p creichen/mu4e-tagging-tag-info-window)
 	     creichen/mu4e-tagging-tag-info-window
@@ -366,6 +367,7 @@
   )
 
 (defun creichen/mu4e-tagging-minor-mode-disable ()
+  (interactive)
   (creichen/mu4e-tagging-query-submode-disable)
   (unwind-protect
       (when (eq creichen/mu4e-tagging-tag-info-window-buf
@@ -554,10 +556,12 @@
 (setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query nil)
 
 (defun creichen/mu4e-tagging--query-rewrite (initial-query)
+  (message "** Asked to do query rewrite from [%s]" initial-query)
   (if (null creichen/mu4e-tagging-query-rewrite-function-backup)
       (progn
 	(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
 	initial-query)
+    ;; otherwise
     (let* ((query (if (eq #'creichen/mu4e-tagging--query-rewrite
 			  creichen/mu4e-tagging-query-rewrite-function-backup) ;; might happen due to a bug or ill-timed package upgrade
 		      initial-query
@@ -590,13 +594,14 @@
 	   )
       (setq creichen/mu4e-tagging-query-rewrite-last-original-query initial-query)
       (setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query result)
-      ; (message "Query rewritten to: %s" result)
+      (message "Query rewritten to: %s" result)
       result
       ))
   )
 
 (defun creichen/mu4e-tagging--query-rewrite-mu4e (initial-query)
   ;; Ensure that we don't keep appending our rewrites to the same query
+  (message "** pondering query rewrite from [%s] [%s]" initial-query creichen/mu4e-tagging-query-rewrite-last-rewritten-query)
   (if (eq initial-query creichen/mu4e-tagging-query-rewrite-last-rewritten-query)
       (creichen/mu4e-tagging--query-rewrite creichen/mu4e-tagging-query-rewrite-last-original-query)
     (creichen/mu4e-tagging--query-rewrite initial-query)
@@ -786,11 +791,15 @@
   (message "filtering: [%s] %s"
 	   (creichen/mu4e-tagging--query-current-flags-string)
 	   (creichen/mu4e-tagging--query-current-category-string))
+  (message "-- time to rerun")
+  (mu4e-search-rerun)
+  (message "-- done with rerun")
   )
 
 (defun creichen/mu4e-tagging-query-clear ()
   (interactive)
-  (creichen/mu4e-tagging-query-submode-reset)
+  (creichen/mu4e-tagging-query-category "")
+  (setq creichen/mu4e-tagging-query-flags nil)
   (creichen/mu4e-tagging-query-rerun)
   )
 
@@ -808,7 +817,9 @@
     (if (not is-flag)
 	;; category?
 	(creichen/mu4e-tagging-query-category tag-name)
-	; flag?
+      ;; flag?
+      (progn
+	(creichen/mu4e-tagging-query-submode-enable)
 	(setq creichen/mu4e-tagging-query-flags
 	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
 		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
@@ -818,19 +829,22 @@
 		  ;; otherwise +flag
 		  (cons (cons tag-name '+) filtered-flags)
 		  )))
-	))
+	)))
+  (message "query-require triggering query rerun")
   (creichen/mu4e-tagging-query-rerun)
   )
 
 (defun creichen/mu4e-tagging-interceptor-query-block ()
   (interactive)
   (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
-	  (is-flag (plist taginfo :flag))
+	  (is-flag (plist-get taginfo :flag))
 	  )
     (if (not is-flag)
 	;; category?
 	(creichen/mu4e-tagging-query-category "")
-	; flag?
+      ;; flag?
+      (progn
+	(creichen/mu4e-tagging-query-submode-enable)
 	(setq creichen/mu4e-tagging-query-flags
 	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
 		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
@@ -840,7 +854,7 @@
 		  ;; otherwise -flag
 		  (cons (cons tag-name '-) filtered-flags)
 		  )))
-	))
+	)))
   (creichen/mu4e-tagging-query-rerun)
   )
 
@@ -850,7 +864,7 @@
 (define-minor-mode creichen/mu4e-tagging-minor-mode
   "A minor mode to quickly retag mails."
   :lighter " tag-mu4e"
-  :keymap creichen/mu4e-tagging-minor-mode-auto-keymap
+  :keymap creichen/mu4e-tagging-minor-mode-keymap
 
   (if creichen/mu4e-tagging-minor-mode
       (progn

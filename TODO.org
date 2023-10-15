@@ -46,13 +46,23 @@
 - State "DONE"       from "TODO"       [2023-10-14 Sat 15:04]
 *** DONE fix: tagging keymap precedence
 - State "DONE"       from "TODO"       [2023-10-14 Sat 15:15]
-*** TODO UI: enter query mode
-*** TODO UI: exit query mode
-*** TODO UI: set search category
-*** TODO UI: set no search category
-*** TODO UI: toggle flag
-*** TODO UI: toggle negative flag
+*** DONE UI: enter query mode
+- State "DONE"       from "TODO"       [2023-10-15 So 10:39]
+*** DONE UI: exit query mode
+- State "DONE"       from "TODO"       [2023-10-15 So 10:39]
+*** DONE UI: set search category
+- State "DONE"       from "TODO"       [2023-10-15 So 10:39]
+*** DONE UI: set no search category
+- State "DONE"       from "TODO"       [2023-10-15 So 10:39]
+*** DONE UI: figure out why changing category triggers search rerun properly, but other case does not
+- State "DONE"       from "TODO"       [2023-10-15 So 16:58]
+*** DONE UI: toggle flag
+- State "DONE"       from "TODO"       [2023-10-15 So 16:58]
+*** DONE UI: toggle negative flag
+- State "DONE"       from "TODO"       [2023-10-15 So 16:58]
 ** TODO cleanup
+*** TODO fix re-enable after previous disable
+*** TODO fix :weight
 *** TODO text-align the tags-info box properly
 *** TODO show search status info
 *** TODO interactive testing
