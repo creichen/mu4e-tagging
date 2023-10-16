@@ -149,7 +149,6 @@
   )
 
 (defun creichen/mu4e-tagging-keyvec (key)
-  (setq debug-on-error t)
   (let* ((key-vec-or-string key)
 	 (key-tag (cond ((vectorp key-vec-or-string)
 			 key-vec-or-string)
@@ -159,7 +158,7 @@
 			 (key-parse key-vec-or-string)))))
     (if (eq 0 (length key-tag))
 	(progn
-	  (message "Empty key binding (%s)" key-vec-or-string)
+	  (warn "creichen/mu4e-tagging: empty key binding (%s); misconfigured?" key-vec-or-string)
 	  key-tag
 	  )
 	;; else all is well
@@ -381,7 +380,6 @@
 (defun creichen/mu4e-tagging-minor-mode-disable ()
   "Ensure that creichen/mu4e-tagging-minor-mode is disabled."
   (interactive)
-  (message "Trying to disable, currently: %s" creichen/mu4e-tagging-minor-mode)
   (if creichen/mu4e-tagging-minor-mode
       ;; switch mode off, which automatically calls disbale-handler
       (creichen/mu4e-tagging-minor-mode 'toggle)
@@ -504,10 +502,9 @@
 (setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query nil)
 
 (defun creichen/mu4e-tagging--query-rewrite (initial-query)
-  (message "** Asked to do query rewrite from [%s]" initial-query)
   (if (null creichen/mu4e-tagging-query-rewrite-function-backup)
       (progn
-	(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
+	;(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
 	initial-query)
     ;; otherwise
     (let* ((query (if (eq #'creichen/mu4e-tagging--query-rewrite
@@ -542,14 +539,13 @@
 	   )
       (setq creichen/mu4e-tagging-query-rewrite-last-original-query initial-query)
       (setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query result)
-      (message "Query rewritten to: %s" result)
+      ;; (message "Query rewritten to: %s" result)
       result
       ))
   )
 
 (defun creichen/mu4e-tagging--query-rewrite-mu4e (initial-query)
   ;; Ensure that we don't keep appending our rewrites to the same query
-  (message "** pondering query rewrite from [%s] [%s]" initial-query creichen/mu4e-tagging-query-rewrite-last-rewritten-query)
   (if (eq initial-query creichen/mu4e-tagging-query-rewrite-last-rewritten-query)
       (creichen/mu4e-tagging--query-rewrite creichen/mu4e-tagging-query-rewrite-last-original-query)
     (creichen/mu4e-tagging--query-rewrite initial-query)
@@ -577,7 +573,6 @@
 (defun creichen/mu4e-tagging-query-submode-disable ()
   ""
   (interactive)
-  (message "Disabling ourselves")
   ;; removes the query-rewrite function
   (when (creichen/mu4e-tagging-query-submode-p)
     (creichen/mu4e-tagging-query-submode-reset)
@@ -588,20 +583,12 @@
   "Disables query-submode if either creichen/mu4e-tagging-mode itself has been
    disabled or the query hook processing hook is disabled."
   (interactive)
-  (message "Checking if we should auto-disable")
   (unless (and creichen/mu4e-tagging-minor-mode
 	       creichen/mu4e-tagging-query-rewrite-function-backup)
-    (message "Time to die: %s %s  in  %s %s" creichen/mu4e-tagging-minor-mode creichen/mu4e-tagging-query-rewrite-function-backup
-	     (current-buffer) major-mode)
     (if (and (eq major-mode 'mu4e-headers-mode)
 	     (not creichen/mu4e-tagging-minor-mode))
 	;; We got disabled by accident?
 	(progn
-	  (message "But we should be alive!?  (tag: %s alive:%s)  (mail: %s alive:%s)"
-		   creichen/mu4e-tagging-tag-info-window
-		   (window-live-p creichen/mu4e-tagging-tag-info-window)
-		   creichen/mu4e-tagging-mail-info-window
-		   (window-live-p creichen/mu4e-tagging-mail-info-window))
 	  (creichen/mu4e-tagging-minor-mode t)
 	  )
       ;; We really aren't needed any more
@@ -740,12 +727,10 @@
 ;; Query submode quick UI
 
 (defun creichen/mu4e-tagging-query-rerun ()
-  (message "filtering: [%s] %s"
-	   (creichen/mu4e-tagging--query-current-flags-string)
-	   (creichen/mu4e-tagging--query-current-category-string))
-  (message "-- time to rerun")
+  ;; (message "filtering: [%s] %s"
+  ;; 	   (creichen/mu4e-tagging--query-current-flags-string)
+  ;; 	   (creichen/mu4e-tagging--query-current-category-string))
   (mu4e-search-rerun)
-  (message "-- done with rerun")
   )
 
 (defun creichen/mu4e-tagging-query-clear ()
@@ -775,7 +760,6 @@
 	(setq creichen/mu4e-tagging-query-flags
 	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
 		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
-		(message ":: for %s, last-bind = %s, special case: %s (from [%s <- %s])" tag-name last-bind (eq '- last-bind) filtered-flags creichen/mu4e-tagging-query-flags)
 		(if (eq '- last-bind)
 		    ;; From -flag to ignoring the flag
 		    filtered-flags
@@ -783,10 +767,7 @@
 		  (cons (cons tag-name '+) filtered-flags)
 		  )))
 	)))
-  (message "Value was: %s" creichen/mu4e-tagging-query-flags)
-  (message "query-require triggering query rerun")
   (creichen/mu4e-tagging-query-rerun)
-  (message "Value is now: %s" creichen/mu4e-tagging-query-flags)
   )
 
 (defun creichen/mu4e-tagging-interceptor-query-block ()
@@ -803,7 +784,6 @@
 	(setq creichen/mu4e-tagging-query-flags
 	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
 		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
-		(message ":: for %s, last-bind = %s, special case: %s (from [%s <- %s])" tag-name last-bind (eq '+ last-bind) filtered-flags creichen/mu4e-tagging-query-flags)
 		(if (eq '+ last-bind)
 		    ;; From +flag to ignoring the flag
 		    filtered-flags
@@ -895,7 +875,6 @@
     widths))
 
 (defun creichen/mu4e-tagging--list-tag-info (taginfo)
-  (setq debug-on-error t)
   (-let* (((tag-name . tag-pinfo) taginfo)
 	  (keybind (plist-get tag-pinfo :key))
 	  (is-flag (plist-get tag-pinfo :flag))
@@ -971,7 +950,6 @@
 		     (column-widths (creichen/mu4e-tagging--column-widths table-data 5))
 		     (query-keybind (creichen/mu4e-tagging--show-keybind creichen/mu4e-tagging-query-prefix))
 		     )
-		(message "widths = %s (%s)" column-widths (max 3 4))
 		(setq tabulated-list-format (vector
 					     `("Key"          ,(max 3 (aref column-widths 0)) t)
 					     `("Flag"         ,(max 4 (aref column-widths 1)) t)
@@ -1014,7 +992,6 @@
   :keymap creichen/mu4e-tagging-minor-mode-keymap
 
   (progn
-    (message "mu4e-tagging-minor-mode: pondering what to do")
   (if creichen/mu4e-tagging-minor-mode
       (progn
 	(creichen/mu4e-tagging-minor-mode-enable-handler)

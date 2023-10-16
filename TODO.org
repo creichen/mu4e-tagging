@@ -79,7 +79,8 @@ Key   Flag   Tag  [C-w]
 - State "DONE"       from "TODO"       [2023-10-16 Mon 09:43]
 *** DONE status window has custom face so we can adjust font size etc.
 - State "DONE"       from "TODO"       [2023-10-16 Mon 09:43]
-*** TODO cleanup debug code
+*** DONE cleanup debug code
+- State "DONE"       from "TODO"       [2023-10-16 Mon 09:48]
 *** TODO group customizing
 *** TODO missing defun docs
 ** TODO size info window automatically (might already be implemented?)
