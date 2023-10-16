@@ -61,6 +61,8 @@
 - State "DONE"       from "TODO"       [2023-10-15 So 16:58]
 *** DONE UI: toggle negative flag
 - State "DONE"       from "TODO"       [2023-10-15 So 16:58]
+** DONE size info window automatically (might already be implemented?)
+- State "DONE"       from "TODO"       [2023-10-16 Mon 10:02]
 ** TODO cleanup
 *** DONE fix re-enable after previous disable
 - State "DONE"       from "TODO"       [2023-10-15 So 17:15]
@@ -81,12 +83,18 @@ Key   Flag   Tag  [C-w]
 - State "DONE"       from "TODO"       [2023-10-16 Mon 09:43]
 *** DONE cleanup debug code
 - State "DONE"       from "TODO"       [2023-10-16 Mon 09:48]
-*** TODO group customizing
-*** TODO missing defun docs
-** TODO size info window automatically (might already be implemented?)
+*** DONE group customizing
+- State "DONE"       from "TODO"       [2023-10-16 Mon 10:00]
+*** DONE missing defun docs
+- State "DONE"       from "TODO"       [2023-10-16 Mon 10:30]
 ** TODO manual decision support
 *** TODO utilise mail window
 *** TODO highlight current tags in tag window
+** TODO refactoring
+*** TODO provide 'mu4e-tagging
+*** TODO remove all the "minor-mode" stuff where not needed
+*** TODO merge the key-tables
+*** TODO organise function definitions better
 ** TODO decision and inspection stats
 *** TODO track most recent "viewed tags" date per tag as reminder
 *** TODO track most recent "viewed" date individually for selected tags ("todo")

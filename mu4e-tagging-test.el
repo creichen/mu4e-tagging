@@ -183,32 +183,6 @@
 				))))
   ))
 
-(ert-deftest test-customise--dotags ()
-  "Customising the tags generates the correct set of category tags."
-  (protecting-state
-   (setup-test-tags)
-   (let ((results nil))
-     (creichen/mu4e-tagging-dotags (taginfo tagty)
-				   (if (null tagty)
-				       (push '(separator) results)
-				     (let* ((tag-name (car taginfo))
-					    (tag-plist (cdr taginfo)))
-				       (push (list tagty tag-name (plist-get tag-plist :short) (plist-get tag-plist :key))
-					     results)
-				       ))
-				   )
-     ;; results will be in reverse order
-     (should (equal '(
-		      (flag "particularly-lengthy" "M" [?p])
-		      (flag "a" "A" [?a])
-		      (separator)
-		      (category "chips" "chips" [?c])
-		      (category "ba" "ba" [?1])
-		      (category "bassoon" "bas" [?b])
-		      )
-		    results)
-   ))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Query rewriting works as intended
 
@@ -414,5 +388,42 @@
    (should (equal '(("a" . -))
 		  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-submode-disable)
+   )
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Key conversions work as intended
+
+(ert-deftest test-key-convert--to-vec ()
+  ""
+  (should-preserve-all-state
+   (should (equal [?a] (creichen/mu4e-tagging-keyvec ?a)))
+   (should (equal [?a] (creichen/mu4e-tagging-keyvec "a")))
+   (should (equal [?a] (creichen/mu4e-tagging-keyvec [?a])))
+   (should (equal [26] (creichen/mu4e-tagging-keyvec "C-z")))
+   (should (equal [?A ?b] (creichen/mu4e-tagging-keyvec "Ab")))
+   (should (equal [?A ?b] (creichen/mu4e-tagging-keyvec [?A ?b])))
+   )
+  )
+
+
+(ert-deftest test-key-convert--from-vec ()
+  ""
+  (should-preserve-all-state
+   (let ((tst [?a]))
+     (should (key-valid-p (creichen/mu4e-tagging-keystring tst)))
+     (should (equal "a" (creichen/mu4e-tagging-keystring tst))))
+   (let ((tst ?a))
+     (should (key-valid-p (creichen/mu4e-tagging-keystring tst)))
+     (should (equal "a" (creichen/mu4e-tagging-keystring tst))))
+   (let ((tst "a"))
+     (should (key-valid-p (creichen/mu4e-tagging-keystring tst)))
+     (should (equal "a" (creichen/mu4e-tagging-keystring tst))))
+   (let ((tst [?a ?b]))
+     (should (key-valid-p (creichen/mu4e-tagging-keystring tst)))
+     (should (equal "a b" (creichen/mu4e-tagging-keystring tst))))
+   (let ((tst [3 ?b]))
+     (should (key-valid-p (creichen/mu4e-tagging-keystring tst)))
+     (should (equal "C-c b" (creichen/mu4e-tagging-keystring tst))))
    )
   )
