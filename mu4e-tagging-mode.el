@@ -822,7 +822,9 @@ For flags, if the flag is currently required, it will be ignored instead of bein
   "Update the tagging-related mail-info buffer displayed to the user"
   (let ((buf (creichen/mu4e-tagging-mail-info-buf)))
     (when buf
-      (let ((msg (mu4e-message-at-point)))
+      (let* ((msg (mu4e-message-at-point))
+	     (path (when msg
+		     (mu4e-message-readable-path))))
 	(save-excursion
 	  (with-current-buffer buf
 	    (read-only-mode)
@@ -832,6 +834,7 @@ For flags, if the flag is currently required, it will be ignored instead of bein
 		  (progn
 		    (insert "Mailinfo\n")
 		    (insert (format "%s" msg))
+		    (insert-file-contents path)
 		    )
 		;; if msg is NIL:
 		(insert "Nomail")

@@ -88,7 +88,7 @@ Key   Flag   Tag  [C-w]
 *** DONE missing defun docs
 - State "DONE"       from "TODO"       [2023-10-16 Mon 10:30]
 ** TODO manual decision support
-*** TODO utilise mail window
+*** TODO utilise mail window (probably needs external support, e.g., rust's `maildir`)
 *** TODO highlight current tags in tag window
 ** TODO refactoring
 *** TODO provide 'mu4e-tagging
