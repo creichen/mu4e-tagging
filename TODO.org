@@ -66,10 +66,21 @@
 - State "DONE"       from "TODO"       [2023-10-15 So 17:15]
 *** DONE fix gradual progression for flags
 - State "DONE"       from "TODO"       [2023-10-15 So 18:46]
-*** TODO fix :weight
-*** TODO text-align the tags-info box properly
-*** TODO show search status info
+*** DONE fix :weight (tentatively)
+- State "DONE"       from "TODO"       [2023-10-15 Sun 20:00]
+*** DONE text-align the tags-info box properly
+- State "DONE"       from "TODO"       [2023-10-16 Mon 09:43]
+Key   Flag   Tag  [C-w]
+[C-d]             filter      (uncategorised)
+[4]          40   filter      edap40
+[1]          15   require(+)  edap15
+[+]   f       +   -(block)    todo
+*** DONE show search status info
+- State "DONE"       from "TODO"       [2023-10-16 Mon 09:43]
+*** DONE status window has custom face so we can adjust font size etc.
+- State "DONE"       from "TODO"       [2023-10-16 Mon 09:43]
 *** TODO cleanup debug code
+*** TODO group customizing
 *** TODO missing defun docs
 ** TODO size info window automatically (might already be implemented?)
 ** TODO manual decision support

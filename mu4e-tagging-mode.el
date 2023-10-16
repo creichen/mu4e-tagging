@@ -42,6 +42,8 @@
 (require 'mu4e)
 (require 'compat-29)
 (require 'crm)
+(setq creichen/mu4e-tagging--supports-vtable
+      (require 'vtable nil 'optional))
 
 (provide 'mu4e-tagging-mode)
 
@@ -257,12 +259,6 @@
   (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
 	      (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
 	      'creichen/mu4e-tagging-decategorize)
-  ;; (let ((query-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-query-prefix)))
-  ;;   (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-  ;; 		(vconcat (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
-  ;; 			 'creichen/mu4e-tagging-decategorize)
-  ;; 		)
-  ;;   )
   )
 
 (defun creichen/mu4e-tagging-update-tags ()
@@ -486,64 +482,6 @@
 	    flag-and-unknown-part
 	    )
     ))
-
-(defun creichen/mu4e-tagging-update-mail-info-buf ()
-  "Update the tagging-related mail-info buffer displayed to the user"
-  (let ((buf (creichen/mu4e-tagging-mail-info-buf)))
-    (when buf
-      (let ((msg (mu4e-message-at-point)))
-	(save-excursion
-	  (with-current-buffer buf
-	    (erase-buffer)
-	    (if msg
-		(progn
-		  (insert "Mailinfo\n")
-		  (insert (format "%s" msg))
-		  )
-	      ;; if msg is NIL:
-	      (insert "Nomail")
-	      )))
-	)))
-  )
-
-(defun creichen/mu4e-tagging-format-tag-info (taginfo tagty)
-  (setq debug-on-error t)
-  (-let* (((tag-name . tag-pinfo) taginfo)
-	  (key-tag (creichen/mu4e-tagging-keyvec (plist-get tag-pinfo :key)))
-	  (tagname (plist-get tag-pinfo :tag))
-	  (short-tagstring (creichen/mu4e-tagging-propertized-name tag-name t))
-	  (tagstring (creichen/mu4e-tagging-propertized-name tag-name nil))
-	  )
-    (format "%-8s %5s %s\n"
- 	    (format "[%s]" (key-description key-tag))
- 	    short-tagstring
- 	    tagstring)
-    )
-  )
-
-(defun creichen/mu4e-tagging-update-tag-info-buf ()
-  "Update the tagging-related tag-info buffer displayed to the user"
-  (let ((buf (creichen/mu4e-tagging-tag-info-buf)))
-    (when buf
-      (let ((msg (mu4e-message-at-point)))
-	(save-excursion
-	  (with-current-buffer buf
-	    (erase-buffer)
-	    (if msg
-		(progn
-		  (creichen/mu4e-tagging-dotags (taginfo tagty)
-						(if tagty
-						    (insert (creichen/mu4e-tagging-format-tag-info taginfo tagty))
-						  ;; separator line
-						  (insert "-----\n")
-						))
-		  )
-	      ;; if msg is NIL:
-	      (insert "Nothing")
-	      )))
-	))
-    )
-  )
 
 (defun creichen/mu4e-tagging-mail-at-point-changed (&rest ignoreme)
   (when (or creichen/mu4e-tagging-tag-info-window creichen/mu4e-tagging-mail-info-window)
@@ -877,6 +815,197 @@
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; mail-info buffer
+
+(defun creichen/mu4e-tagging-update-mail-info-buf ()
+  "Update the tagging-related mail-info buffer displayed to the user"
+  (let ((buf (creichen/mu4e-tagging-mail-info-buf)))
+    (when buf
+      (let ((msg (mu4e-message-at-point)))
+	(save-excursion
+	  (with-current-buffer buf
+	    (read-only-mode)
+	    (let ((inhibit-read-only t))
+	      (erase-buffer)
+	      (if msg
+		  (progn
+		    (insert "Mailinfo\n")
+		    (insert (format "%s" msg))
+		    )
+		;; if msg is NIL:
+		(insert "Nomail")
+		)))
+	  )
+	)))
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; tag-info buffer
+
+(defface creichen/mu4e-tagging-separator
+  '((t (:inherit shadow)))
+  "Low-intensity separator characters for `creichen/mu4e-tagging-mode`."
+  :group 'my-faces)
+
+(defface creichen/mu4e-tagging-filter-disabled
+  '((t (:inherit widget-inactive)))
+  "Indicates that a filter is disabled in `creichen/mu4e-tagging-mode`."
+  :group 'my-faces)
+
+(defface creichen/mu4e-tagging-filter-require
+  '((((class color) (background light))
+     :background "dark green" :foreground "greenyellow" :weight ultra-bold)
+    (((class color) (background dark))
+     :background "greenyellow" :foreground "black" :weight ultra-bold)
+    (t :weight ultra-bold))
+  "Indicates that a filter is set to require a tag in `creichen/mu4e-tagging-mode`."
+  :group 'basic-faces)
+
+(defface creichen/mu4e-tagging-filter-block
+  '((((class color) (background light))
+     :background "LightSalmon3" :foreground "yellow" :weight ultra-bold)
+    (((class color) (background dark))
+     :background "LightSalmon1" :foreground "black" :weight ultra-bold)
+    (t :weight ultra-bold :inverse-video t))
+  "Indicates that a filter is set to block a tag in `creichen/mu4e-tagging-mode`."
+  :group 'basic-faces)
+
+(define-derived-mode creichen/mu4e-tagging-tags-info-mode tabulated-list-mode "mu4e-tag info"
+  "Major mode to support creichen/mu4e-tagging-minor-mode.  Used to display
+   active tags and key bindings."
+  )
+
+(defun creichen/mu4e-tagging--show-keybind (keybind)
+  (concat
+   (propertize "[" 'face 'creichen/mu4e-tagging-separator)
+   (propertize (key-description (creichen/mu4e-tagging-keyvec keybind)) 'face 'help-key-binding)
+   (propertize "]" 'face 'creichen/mu4e-tagging-separator)
+   )
+  )
+
+(defun creichen/mu4e-tagging--column-widths (rows num-columns)
+  (let ((widths (make-vector num-columns 0)))
+    (dolist (row rows)
+      (seq-do-indexed (lambda (elt index)
+			(aset widths index
+			      (max (length elt)
+				   (aref widths index))))
+		      row)
+      )
+    widths))
+
+(defun creichen/mu4e-tagging--list-tag-info (taginfo)
+  (setq debug-on-error t)
+  (-let* (((tag-name . tag-pinfo) taginfo)
+	  (keybind (plist-get tag-pinfo :key))
+	  (is-flag (plist-get tag-pinfo :flag))
+	  ;(tagname (plist-get tag-pinfo :tag))
+	  (short-tagstring (creichen/mu4e-tagging-propertized-name tag-name t))
+	  ;;(tagstring (creichen/mu4e-tagging-propertized-name tag-name nil))
+	  (filter-status (if is-flag
+			     (creichen/mu4e-tagging--propertized-info
+			      (alist-get tag-name creichen/mu4e-tagging-query-flags))
+			   ;; categorical
+			   (creichen/mu4e-tagging--propertized-info (eq creichen/mu4e-tagging-query-category tag-name))
+			   ))
+	  )
+    (list
+     (creichen/mu4e-tagging--show-keybind keybind)
+     (if is-flag "f" "")
+     short-tagstring
+     filter-status
+     tag-name
+     )
+    )
+  )
+
+(defun creichen/mu4e-tagging--propertized-info (mode)
+  (let ((string (cond ((eq mode t)
+		       "required")
+		      ((eq mode '+)
+		       "required")
+		      ((eq mode '-)
+		       "blocked")
+		      (t
+		       "shown")
+		      ))
+	)
+    (propertize string 'face
+		(cond ((eq mode t)
+		       'creichen/mu4e-tagging-filter-require)
+		      ((eq mode '+)
+		       'creichen/mu4e-tagging-filter-require)
+		      ((eq mode '-)
+		       'creichen/mu4e-tagging-filter-block)
+		      (t
+		       'creichen/mu4e-tagging-filter-disabled)))
+    )
+  )
+
+(defun creichen/mu4e-tagging-update-tag-info-buf ()
+  "Update the tagging-related tag-info buffer displayed to the user"
+  (let ((buf (creichen/mu4e-tagging-tag-info-buf)))
+    (when buf
+      (let ((msg (mu4e-message-at-point)))
+	(save-excursion
+	  (with-current-buffer buf
+	    (read-only-mode)
+	    (let ((inhibit-read-only t))
+	      (erase-buffer)
+	      (creichen/mu4e-tagging-tags-info-mode)
+	      (let* ((table-data-main
+		      (mapcar #'creichen/mu4e-tagging--list-tag-info
+			      (append
+			       (creichen/mu4e-tagging-categories-get)
+			       (creichen/mu4e-tagging-flags-get))))
+		     ;; prepend "uncategorised" row
+		     (table-data (cons
+				  (list
+				   (creichen/mu4e-tagging--show-keybind creichen/mu4e-tagging-uncategorized-suffix)
+				   ""
+				   ""
+				   (creichen/mu4e-tagging--propertized-info (eq creichen/mu4e-tagging-query-category 'uncategorized))
+				   "(uncategorised)"
+				   )
+				  table-data-main))
+		     (column-widths (creichen/mu4e-tagging--column-widths table-data 5))
+		     (query-keybind (creichen/mu4e-tagging--show-keybind creichen/mu4e-tagging-query-prefix))
+		     )
+		(message "widths = %s (%s)" column-widths (max 3 4))
+		(setq tabulated-list-format (vector
+					     `("Key"          ,(max 3 (aref column-widths 0)) t)
+					     `("Flag"         ,(max 4 (aref column-widths 1)) t)
+					     `("Tag"          ,(max 3 (aref column-widths 2)) t :right-align t)
+					     `(,query-keybind ,(max 8 (length query-keybind) (aref column-widths 3)) t :right-align t)
+					     `(""            1 t)
+					     ))
+		(tabulated-list-init-header)
+		(setq tabulated-list-entries
+		      ;; expects list of (nil [key  flag  tag  keybind  info])
+		      (mapcar (lambda (row)
+				(list nil (vconcat row)))
+			      table-data))
+		(tabulated-list-print)
+		;; alternative approach with vtable:
+		;; 	    (make-vtable
+		;; 	     :columns '(:name "Key" :align left)
+		;; 	     :objects rows
+		;; 	     ;:face ...
+		;; 	    )
+		)
+	      ;; resize window
+	      (when creichen/mu4e-tagging-tag-info-window
+		(fit-window-to-buffer creichen/mu4e-tagging-tag-info-window))
+	      ;; hide cursor
+	      (setq cursor-type nil)
+	      )))
+	))
+    )
+  )
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Configuration interface
 
 (define-minor-mode creichen/mu4e-tagging-minor-mode
@@ -943,22 +1072,22 @@
 		    (:background (choice (const :tag "none" nil)
 					 (color :tag "Background color")))
 		    (:weight (choice (const :tag "none" nil)
-				     (const "ultrathin")
-				     (const "light")
-				     (const "semilight")
-				     (const "normal")
-				     (const "medium")
-				     (const "semibold")
-				     (const "bold")
-				     (const 'ultra-bold)))
+				     (const ultrathin)
+				     (const light)
+				     (const semilight)
+				     (const normal)
+				     (const medium)
+				     (const semibold)
+				     (const bold)
+				     (const ultra-bold)))
 		    (:box (choice (const :tag "none" nil)
 				  (const :tag "simple" t)
 				  (color :tag "color")
 				  (plist :options ((:line-width (choice (integer :tag "width+height (positive: extrude, negative: intrude)")
 									(cons :tag "width . height")))
 						   (:color color)
-						   (:style (choice (const 'line)
-								   (const 'wave)))))))
+						   (:style (choice (const line)
+								   (const wave)))))))
 		    )))
   :initialize 'creichen/mu4e-tagging-update-customize-reset
   :set (lambda (symbol value)
