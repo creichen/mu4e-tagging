@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t; -*-
 ;;; mu4e-tagging-mode.el --- minor mode for quick tagging in mu4e -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2023 Christoph Reichenbach
@@ -98,24 +99,26 @@ The value is a plist that is guaranteed to contain :short and :key, and may cont
   "Handles callbacks for tagging and uses the most recent key sequence to identify the requested tag."
   (interactive)
   (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
-	  (is-flag (plist-get taginfo :flag))
-	  (msg (mu4e-message-at-point))
-	  (tag-add (concat "+" tag-name))
-	  (tag-remove (if (not is-flag)
-			  (mapconcat (lambda (n) (concat "-" n))
-				     (remove tag-name (creichen/mu4e-tagging-known-category-tags))
-				     ",")
-			;; no tags to remove for tag-add
-			"")
-		      )
-	  (tags-update  (concat
-			 tag-add
-			 (if (eq "" tag-remove)
-			     ""
-			   ",")
-			 tag-remove
-			 ))
-	  )
+          (is-flag (plist-get taginfo :flag))
+          (_ (message "** tag-name: [%s] is-flag: [%s]" tag-name is-flag))
+          (msg (mu4e-message-at-point))
+          (tag-add (concat "+" tag-name))
+          (tag-remove (if (not is-flag)
+                          (mapconcat (lambda (n) (concat "-" n))
+                                     (remove tag-name (creichen/mu4e-tagging-known-category-tags))
+                                     ",")
+                        ;; no tags to remove for tag-add
+                        "")
+                      )
+          (tags-update  (concat
+                         tag-add
+                         (if (eq "" tag-remove)
+                             ""
+                           ",")
+                         tag-remove
+                         ))
+          )
+    (message "** tags-update: '%s'" tags-update)
     (mu4e-action-retag-message msg tags-update)
     )
   )
@@ -124,7 +127,7 @@ The value is a plist that is guaranteed to contain :short and :key, and may cont
   "Handles callbacks for untagging and uses the most recent key sequence to identify the requested tag."
   (interactive)
   (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-untag))
-	  (msg (mu4e-message-at-point)))
+          (msg (mu4e-message-at-point)))
     (mu4e-action-retag-message msg (concat "-" tag-name))
     )
   )
@@ -133,10 +136,10 @@ The value is a plist that is guaranteed to contain :short and :key, and may cont
   "Removes any category tags for the message at point."
   (interactive)
   (let ((tags-remove (mapconcat (lambda (n) (concat "-" n))
-				(creichen/mu4e-tagging-known-category-tags)
-			       ","))
-	(msg (mu4e-message-at-point))
-	)
+                                (creichen/mu4e-tagging-known-category-tags)
+                               ","))
+        (msg (mu4e-message-at-point))
+        )
     (mu4e-action-retag-message msg tags-remove)
     )
   )
@@ -144,31 +147,31 @@ The value is a plist that is guaranteed to contain :short and :key, and may cont
 (defun creichen/mu4e-tagging-keystring (key)
   "Translates a key binding (string or character or key vector) into a string that satisfies `key-valid-p`"
   (cond ((key-valid-p key)
-	 key)
-	((vectorp key)
-	 (key-description key))
-	((characterp key)
-	 (key-description (vector key)))
-	(t
-	 (key-description (key-parse key)))
-	)
+         key)
+        ((vectorp key)
+         (key-description key))
+        ((characterp key)
+         (key-description (vector key)))
+        (t
+         (key-description (key-parse key)))
+        )
   )
 
 (defun creichen/mu4e-tagging-keyvec (key)
   "Translates a key binding (string or character or key vector) into a key vector"
   (let* ((key-vec-or-string key)
-	 (key-tag (cond ((vectorp key-vec-or-string)
-			 key-vec-or-string)
-			((characterp key-vec-or-string)
-			 (vector key-vec-or-string))
-			(t
-			 (key-parse key-vec-or-string)))))
+         (key-tag (cond ((vectorp key-vec-or-string)
+                         key-vec-or-string)
+                        ((characterp key-vec-or-string)
+                         (vector key-vec-or-string))
+                        (t
+                         (key-parse key-vec-or-string)))))
     (if (eq 0 (length key-tag))
-	(progn
-	  (warn "creichen/mu4e-tagging: empty key binding (%s); misconfigured?" key-vec-or-string)
-	  key-tag
-	  )
-	;; else all is well
+        (progn
+          (warn "creichen/mu4e-tagging: empty key binding (%s); misconfigured?" key-vec-or-string)
+          key-tag
+          )
+        ;; else all is well
       key-tag
     ))
   )
@@ -182,62 +185,62 @@ Returns tag-pbody with :key possibly updated.  Throws
 unused binding, or
  (3) :key is somehow invalid."
   (let* ((requested-key (plist-get tag-pbody :key))
-	 (str-key (cond
-		   ((null requested-key)
-		    nil)
-		   ((stringp requested-key)
-		    requested-key)
-		   (t
-		    (key-description (if (vectorp requested-key)
-					 requested-key
-				       ;; otherwise single character
-				       (vector requested-key))))))
-	 (key (or
-	       str-key
-	       (cl-loop for c across (concat tag-name
-					     (plist-get tag-pbody :short)
-					     "1234567890")
-			when (not (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap (kbd (string c))))
-			return (key-description (vector c)))))
-	 (prefix-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-untag-prefix))
-	 (query-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-query-prefix))
-	 )
+         (str-key (cond
+                   ((null requested-key)
+                    nil)
+                   ((stringp requested-key)
+                    requested-key)
+                   (t
+                    (key-description (if (vectorp requested-key)
+                                         requested-key
+                                       ;; otherwise single character
+                                       (vector requested-key))))))
+         (key (or
+               str-key
+               (cl-loop for c across (concat tag-name
+                                             (plist-get tag-pbody :short)
+                                             "1234567890")
+                        when (not (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap (kbd (string c))))
+                        return (key-description (vector c)))))
+         (prefix-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-untag-prefix))
+         (query-key-vec (creichen/mu4e-tagging-keyvec  creichen/mu4e-tagging-query-prefix))
+         )
     (when (or
-	   (null key)
-	   (equal (string-to-char key)
-		  creichen/mu4e-tagging-untag-prefix)
-	   (keymap-lookup creichen/mu4e-tagging-minor-mode-keymap (kbd key)))
+           (null key)
+           (equal (string-to-char key)
+                  creichen/mu4e-tagging-untag-prefix)
+           (keymap-lookup creichen/mu4e-tagging-minor-mode-keymap (kbd key)))
       (throw 'keybind-impossible (list tag-name :key requested-key))
       )
     ;; Otherwise the keybind is available
     (let* ((key-tag (creichen/mu4e-tagging-keyvec key))
-	   (key-untag (vconcat prefix-key-vec key-tag))
-	   ;; keys for querying
-	   (key-query-require (vconcat query-key-vec key-tag))
-	   (key-query-block (vconcat query-key-vec prefix-key-vec key-tag))
-	   ;; update :key accordingly
-	   (tag-pbody-new (plist-put tag-pbody :key (creichen/mu4e-tagging-keystring key-tag)))
-	   (taginfo (cons tag-name tag-pbody-new))
-	   )
+           (key-untag (vconcat prefix-key-vec key-tag))
+           ;; keys for querying
+           (key-query-require (vconcat query-key-vec key-tag))
+           (key-query-block (vconcat query-key-vec prefix-key-vec key-tag))
+           ;; update :key accordingly
+           (tag-pbody-new (plist-put tag-pbody :key (creichen/mu4e-tagging-keystring key-tag)))
+           (taginfo (cons tag-name tag-pbody-new))
+           )
       ;; Bind the key to call the generic interceptor functions
       (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-		  key-tag #'creichen/mu4e-tagging-interceptor-tag)
+                  key-tag #'creichen/mu4e-tagging-interceptor-tag)
       (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-		  key-untag #'creichen/mu4e-tagging-interceptor-untag)
+                  key-untag #'creichen/mu4e-tagging-interceptor-untag)
       (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-		  key-query-require #'creichen/mu4e-tagging-interceptor-query-require)
+                  key-query-require #'creichen/mu4e-tagging-interceptor-query-require)
       (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-		  key-query-block #'creichen/mu4e-tagging-interceptor-query-block)
+                  key-query-block #'creichen/mu4e-tagging-interceptor-query-block)
 
       ;; Set up reverse lookup keymaps so the interceptors can figure out why they were called
       (puthash key-tag taginfo
-	       creichen/mu4e-tagging-reverse-key-table-tag)
+               creichen/mu4e-tagging-reverse-key-table-tag)
       (puthash key-untag taginfo
-	       creichen/mu4e-tagging-reverse-key-table-untag)
+               creichen/mu4e-tagging-reverse-key-table-untag)
       (puthash key-query-require taginfo
-	       creichen/mu4e-tagging-reverse-key-table-tag)
+               creichen/mu4e-tagging-reverse-key-table-tag)
       (puthash key-query-block taginfo
-	       creichen/mu4e-tagging-reverse-key-table-tag)
+               creichen/mu4e-tagging-reverse-key-table-tag)
       ;; Return updated tag-body plist
       tag-pbody-new
       )
@@ -247,8 +250,8 @@ unused binding, or
 (defun creichen/mu4e-tagging-alloc-default-keys ()
   "Installs default dynamic key bindings"
   (define-key creichen/mu4e-tagging-minor-mode-auto-keymap
-	      (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
-	      'creichen/mu4e-tagging-decategorize)
+              (creichen/mu4e-tagging-keyvec creichen/mu4e-tagging-uncategorized-suffix)
+              'creichen/mu4e-tagging-decategorize)
   )
 
 (defun creichen/mu4e-tagging-update-tags ()
@@ -259,36 +262,36 @@ unused binding, or
   ;(setq creichen/mu4e-tagging-known-category-tags nil)
   (creichen/mu4e-tagging-minor-mode-clear-tagging-auto-keymap)
   (let ((prefix-key-vec (if (vectorp creichen/mu4e-tagging-untag-prefix)
-			    creichen/mu4e-tagging-untag-prefix
-			  (vector creichen/mu4e-tagging-untag-prefix)))
-	(tag-aspecs-list (if (boundp 'creichen/mu4e-tagging-tags)
-			      creichen/mu4e-tagging-tags
-			    nil))
-	(tag-infos-categories nil)
-	(tag-infos-flags nil)
-	)
+                            creichen/mu4e-tagging-untag-prefix
+                          (vector creichen/mu4e-tagging-untag-prefix)))
+        (tag-aspecs-list (if (boundp 'creichen/mu4e-tagging-tags)
+                              creichen/mu4e-tagging-tags
+                            nil))
+        (tag-infos-categories nil)
+        (tag-infos-flags nil)
+        )
     (dolist (tag-aspec tag-aspecs-list)
       (-let* (((tag-name . tag-pbody-orig) tag-aspec)
-	      (tag-short-orig (plist-get tag-pbody-orig :short))
-	      (tag-short (if tag-short-orig
-			     tag-short-orig
-			   tag-name))
-	      (tag-pbody-pre (plist-put tag-pbody-orig :short tag-short))
-	      ;; alloc-keys ensures that tag-pbody contains the correct :key value
-	      (tag-pbody (creichen/mu4e-tagging-alloc-keys tag-name
-							   tag-pbody-pre))
-	      (is-flag (plist-get tag-pbody :flag))
-	      (tag-info (cons tag-name tag-pbody)))
-	(puthash tag-name tag-pbody creichen/mu4e-tagging-known-tags)
-	(if is-flag
-	    ; flag:
-	    (push tag-info tag-infos-flags)
-	  ; category:
-	  (progn
-	    ;(push tag-name creichen/mu4e-tagging-known-category-tags)
-	    (push tag-info tag-infos-categories)
-	    ))
-	)
+              (tag-short-orig (plist-get tag-pbody-orig :short))
+              (tag-short (if tag-short-orig
+                             tag-short-orig
+                           tag-name))
+              (tag-pbody-pre (plist-put tag-pbody-orig :short tag-short))
+              ;; alloc-keys ensures that tag-pbody contains the correct :key value
+              (tag-pbody (creichen/mu4e-tagging-alloc-keys tag-name
+                                                           tag-pbody-pre))
+              (is-flag (plist-get tag-pbody :flag))
+              (tag-info (cons tag-name tag-pbody)))
+        (puthash tag-name tag-pbody creichen/mu4e-tagging-known-tags)
+        (if is-flag
+            ; flag:
+            (push tag-info tag-infos-flags)
+          ; category:
+          (progn
+            ;(push tag-name creichen/mu4e-tagging-known-category-tags)
+            (push tag-info tag-infos-categories)
+            ))
+        )
       )
     ;; Add the remaining dynamic key bindings
     (creichen/mu4e-tagging-alloc-default-keys)
@@ -315,10 +318,10 @@ Shows the buffer in the designated window, if it still exists."
   (when creichen/mu4e-tagging-mail-info-window
     (let ((buf (get-buffer-create " *mu4e-tagging-mail-info*")))
       (unless
-	  creichen/mu4e-tagging-mail-info-window-buf
-	(set-window-buffer creichen/mu4e-tagging-mail-info-window buf t)
-	(setq creichen/mu4e-tagging-mail-info-window-buf buf)
-	)
+          creichen/mu4e-tagging-mail-info-window-buf
+        (set-window-buffer creichen/mu4e-tagging-mail-info-window buf t)
+        (setq creichen/mu4e-tagging-mail-info-window-buf buf)
+        )
       buf))
   )
 
@@ -329,24 +332,24 @@ Shows the buffer in the designated window, if it still exists."
   (when creichen/mu4e-tagging-tag-info-window
     (let ((buf (get-buffer-create " *mu4e-tagging-tag-info*")))
       (unless
-	  creichen/mu4e-tagging-tag-info-window-buf
-	(set-window-buffer creichen/mu4e-tagging-tag-info-window buf t)
-	(setq creichen/mu4e-tagging-tag-info-window-buf buf)
-	)
+          creichen/mu4e-tagging-tag-info-window-buf
+        (set-window-buffer creichen/mu4e-tagging-tag-info-window buf t)
+        (setq creichen/mu4e-tagging-tag-info-window-buf buf)
+        )
       buf))
   )
 
 (defun creichen/mu4e-tagging-minor-mode-enable-handler ()
   "Handles minor mode activation: creates info windows and adds hooks to mu4e."
   (let ((tag-info-window
-	 (if (window-live-p creichen/mu4e-tagging-tag-info-window)
-	     creichen/mu4e-tagging-tag-info-window
-	   (split-window-below (- -2 (hash-table-count creichen/mu4e-tagging-known-tags)))))
+         (if (window-live-p creichen/mu4e-tagging-tag-info-window)
+             creichen/mu4e-tagging-tag-info-window
+           (split-window-below (- -2 (hash-table-count creichen/mu4e-tagging-known-tags)))))
         (mail-info-window
-	 (if (window-live-p creichen/mu4e-tagging-mail-info-window)
-	     creichen/mu4e-tagging-mail-info-window
-	   (split-window-right -80)))
-	)
+         (if (window-live-p creichen/mu4e-tagging-mail-info-window)
+             creichen/mu4e-tagging-mail-info-window
+           (split-window-right -80)))
+        )
     (setq creichen/mu4e-tagging-tag-info-window tag-info-window)
     (setq creichen/mu4e-tagging-mail-info-window mail-info-window)
     (creichen/mu4e-tagging-mail-info-buf)
@@ -362,12 +365,12 @@ Shows the buffer in the designated window, if it still exists."
   (creichen/mu4e-tagging-query-submode-disable)
   (unwind-protect
       (when (eq creichen/mu4e-tagging-tag-info-window-buf
-	      (window-buffer creichen/mu4e-tagging-tag-info-window))
-	  (delete-window creichen/mu4e-tagging-tag-info-window)))
+              (window-buffer creichen/mu4e-tagging-tag-info-window))
+          (delete-window creichen/mu4e-tagging-tag-info-window)))
   (unwind-protect
       (when (eq creichen/mu4e-tagging-mail-info-window-buf
-	      (window-buffer creichen/mu4e-tagging-mail-info-window))
-	  (delete-window creichen/mu4e-tagging-mail-info-window)))
+              (window-buffer creichen/mu4e-tagging-mail-info-window))
+          (delete-window creichen/mu4e-tagging-mail-info-window)))
   (setq creichen/mu4e-tagging-tag-info-window nil)
   (setq creichen/mu4e-tagging-mail-info-window nil)
   (setq creichen/mu4e-tagging-tag-info-window-buf nil)
@@ -389,12 +392,12 @@ Shows the buffer in the designated window, if it still exists."
   "Determines if tagname is a tag for a 'category, for a 'flag, or not a known tag (NIL)"
   (let ((plist (creichen/mu4e-tagging-info tagname)))
     (cond ((null plist)
-	   nil)
-	  ((plist-get plist :flag)
-	   'flag)
-	  (t
-	   'category)
-	  ))
+           nil)
+          ((plist-get plist :flag)
+           'flag)
+          (t
+           'category)
+          ))
   )
 
 (defun creichen/mu4e-tagging-info (tagname)
@@ -420,21 +423,21 @@ Shows the buffer in the designated window, if it still exists."
 (defun creichen/mu4e-tagging-propertized-name (tag-name &rest short)
   "Retrieves the propertized tag string for the given tag name.  If SHORT is non-NIL, uses :short instead of :tag."
   (let* ((tinfo (creichen/mu4e-tagging-info tag-name))
-	 (name (if (and short (car short))
-		   (plist-get tinfo :short)
-		 tag-name))
-	 (fg (plist-get tinfo :foreground))
-	 (bg (plist-get tinfo :background))
-	 (box (plist-get tinfo :box))
-	 (weight (plist-get tinfo :weight))
-	 (face 		     (append
-			      (if fg (list :foreground fg))
-			      (if bg (list :background bg))
-			      (cond ((null box) nil)
-				    ((eq box t) '(:box (:line-width -1)))
-				    (t (list :box box)))
-			      (if weight (list :weigth weight))))
-	 )
+         (name (if (and short (car short))
+                   (plist-get tinfo :short)
+                 tag-name))
+         (fg (plist-get tinfo :foreground))
+         (bg (plist-get tinfo :background))
+         (box (plist-get tinfo :box))
+         (weight (plist-get tinfo :weight))
+         (face                      (append
+                              (if fg (list :foreground fg))
+                              (if bg (list :background bg))
+                              (cond ((null box) nil)
+                                    ((eq box t) '(:box (:line-width -1)))
+                                    (t (list :box box)))
+                              (if weight (list :weigth weight))))
+         )
     (propertize name 'face (list face))
     )
   )
@@ -442,8 +445,8 @@ Shows the buffer in the designated window, if it still exists."
 (add-to-list 'mu4e-header-info-custom
              '(:short-tags .
                            (:name "Short Tags"
-				  :shortname "mTags" ; "milli-Tags"
-				  :function creichen/mu4e-tagging-render-tags)))
+                                  :shortname "mTags" ; "milli-Tags"
+                                  :function creichen/mu4e-tagging-render-tags)))
 
 (setq mu4e-headers-fields
       '((:human-date   .  10)
@@ -452,34 +455,34 @@ Shows the buffer in the designated window, if it still exists."
         (:mailing-list .  10)
         (:from         .  20)
         (:subject      .  nil)
-	))
+        ))
 
 (defun creichen/mu4e-tagging-render-tags (msg)
   "Returns a propertized string that highlights the tags for the given message."
   (let* (
-	 (tags (mu4e-message-field msg :tags))
-	 (category-tags (-filter 'creichen/mu4e-tagging-category-tag-p tags))
-	 (flag-tags (-filter 'creichen/mu4e-tagging-flag-tag-p tags))
-	 (unknown-tags (-filter 'creichen/mu4e-tagging-no-tag-p tags))
-	 (category-part (mapconcat (lambda (tag)
-				     (creichen/mu4e-tagging-propertized-name tag t))
-				   category-tags "_"))
-	 (flag-part (mapconcat (lambda (tag)
-				 (creichen/mu4e-tagging-propertized-name tag t))
-			       flag-tags ""))
-	 (unknown-part (mapconcat (lambda (tag)
-				    tag)
-				  unknown-tags ","))
-	 (flag-and-unknown-part (concat flag-part (if unknown-tags
-						      (concat " " unknown-part)
-						    "")))
-	 )
+         (tags (mu4e-message-field msg :tags))
+         (category-tags (-filter 'creichen/mu4e-tagging-category-tag-p tags))
+         (flag-tags (-filter 'creichen/mu4e-tagging-flag-tag-p tags))
+         (unknown-tags (-filter 'creichen/mu4e-tagging-no-tag-p tags))
+         (category-part (mapconcat (lambda (tag)
+                                     (creichen/mu4e-tagging-propertized-name tag t))
+                                   category-tags "_"))
+         (flag-part (mapconcat (lambda (tag)
+                                 (creichen/mu4e-tagging-propertized-name tag t))
+                               flag-tags ""))
+         (unknown-part (mapconcat (lambda (tag)
+                                    tag)
+                                  unknown-tags ","))
+         (flag-and-unknown-part (concat flag-part (if unknown-tags
+                                                      (concat " " unknown-part)
+                                                    "")))
+         )
     (concat category-part
-	    (if (and flag-tags (not (string-empty-p flag-and-unknown-part)))
-		":"
-	      "")
-	    flag-and-unknown-part
-	    )
+            (if (and flag-tags (not (string-empty-p flag-and-unknown-part)))
+                ":"
+              "")
+            flag-and-unknown-part
+            )
     ))
 
 (defun creichen/mu4e-tagging-mail-at-point-changed (&rest ignoreme)
@@ -511,39 +514,39 @@ INITIAL-QUERY and `creichen/mu4e-tagging-query-rewrite-last-rewritten-query`
 with the function return value, cf. `creichen/mu4e-tagging--query-rewrite-mu4e`."
   (if (null creichen/mu4e-tagging-query-rewrite-function-backup)
       (progn
-	;(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
-	initial-query)
+        ;(message "creichen/mu4e-tagging--query-rewrite called outside of tagging-query submode")
+        initial-query)
     ;; otherwise
     (let* ((query (if (eq #'creichen/mu4e-tagging--query-rewrite
-			  creichen/mu4e-tagging-query-rewrite-function-backup) ;; might happen due to a bug or ill-timed package upgrade
-		      initial-query
-		    (apply creichen/mu4e-tagging-query-rewrite-function-backup (list initial-query))))
-	   (cat-filter creichen/mu4e-tagging-query-category)
-	   (predicates-for-category (cond
-				     ((eq 'uncategorized cat-filter)
-				      (mapcar (lambda (cat) (concat "(NOT x:" cat ")"))  (creichen/mu4e-tagging-known-category-tags)))
-				     ((stringp cat-filter)
-				      (list (concat "x:" cat-filter)))
-				     (t
-				      nil)))
-	   (predicates-for-flags (mapcar (lambda (pair)
-					   (let* ((tag (car pair))
-						  (q (concat "x:" tag))
-						  (dir (cdr pair))
-						  )
-					     (if (eq '+ dir)
-						 q
-					       (concat "(NOT " q ")"))
-					     )
-					   )
-					 creichen/mu4e-tagging-query-flags))
-	   (predicates (append predicates-for-category predicates-for-flags))
-	   (result (string-join (cons
-		    (concat "(" query ")")
-		    predicates)
-		   " AND "))
+                          creichen/mu4e-tagging-query-rewrite-function-backup) ;; might happen due to a bug or ill-timed package upgrade
+                      initial-query
+                    (apply creichen/mu4e-tagging-query-rewrite-function-backup (list initial-query))))
+           (cat-filter creichen/mu4e-tagging-query-category)
+           (predicates-for-category (cond
+                                     ((eq 'uncategorized cat-filter)
+                                      (mapcar (lambda (cat) (concat "(NOT x:" cat ")"))  (creichen/mu4e-tagging-known-category-tags)))
+                                     ((stringp cat-filter)
+                                      (list (concat "x:" cat-filter)))
+                                     (t
+                                      nil)))
+           (predicates-for-flags (mapcar (lambda (pair)
+                                           (let* ((tag (car pair))
+                                                  (q (concat "x:" tag))
+                                                  (dir (cdr pair))
+                                                  )
+                                             (if (eq '+ dir)
+                                                 q
+                                               (concat "(NOT " q ")"))
+                                             )
+                                           )
+                                         creichen/mu4e-tagging-query-flags))
+           (predicates (append predicates-for-category predicates-for-flags))
+           (result (string-join (cons
+                    (concat "(" query ")")
+                    predicates)
+                   " AND "))
 
-	   )
+           )
       (setq creichen/mu4e-tagging-query-rewrite-last-original-query initial-query)
       (setq creichen/mu4e-tagging-query-rewrite-last-rewritten-query result)
       ;; (message "Query rewritten to: %s" result)
@@ -596,13 +599,13 @@ increasingly complex queries with redundant filters."
  disabled or the query hook processing hook is disabled."
   (interactive)
   (unless (and creichen/mu4e-tagging-minor-mode
-	       creichen/mu4e-tagging-query-rewrite-function-backup)
+               creichen/mu4e-tagging-query-rewrite-function-backup)
     (if (and (eq major-mode 'mu4e-headers-mode)
-	     (not creichen/mu4e-tagging-minor-mode))
-	;; We got disabled by accident?
-	(progn
-	  (creichen/mu4e-tagging-minor-mode t)
-	  )
+             (not creichen/mu4e-tagging-minor-mode))
+        ;; We got disabled by accident?
+        (progn
+          (creichen/mu4e-tagging-minor-mode t)
+          )
       ;; We really aren't needed any more
       (creichen/mu4e-tagging-query-submode-disable)
       )
@@ -660,7 +663,7 @@ separated by `creichen/mu4e-tagging-query-separator`."
   (mapconcat
    (lambda (pair)
      (let ((tag (car pair))
-	   (dir (cdr pair)))
+           (dir (cdr pair)))
        (concat (symbol-name dir) tag)))
    creichen/mu4e-tagging-query-flags
    creichen/mu4e-tagging-query-separator
@@ -673,13 +676,13 @@ a pair (\"foo\" . '+) or (\"foo\" . '-), suitable for alist storage, or nil on e
   (if (< (length pmtag) 2)
       nil
     (let ((dir-string (substring pmtag 0 1))
-	  (tag (substring pmtag 1)))
+          (tag (substring pmtag 1)))
       (if (or
-	   (equal "-" dir-string)
-	   (equal "+" dir-string))
-	  ;; well-formed:
-	  (cons tag (intern dir-string))
-	)
+           (equal "-" dir-string)
+           (equal "+" dir-string))
+          ;; well-formed:
+          (cons tag (intern dir-string))
+        )
       ))
   )
 
@@ -690,12 +693,12 @@ If PMTAGS is a string, the markers must be separated by
 The result is an alist of tags and + and - symbols, as used in
 `creichen/mu4e-tagging-query-flags`."
   (-filter #'identity ; remove any nil
-	   (mapcar #'creichen/mu4e-tagging--query-flag-parse
-		   (if (listp pmtags)
-		       pmtags
-		     (split-string pmtags creichen/mu4e-tagging-query-separator))
-		   )
-	   )
+           (mapcar #'creichen/mu4e-tagging--query-flag-parse
+                   (if (listp pmtags)
+                       pmtags
+                     (split-string pmtags creichen/mu4e-tagging-query-separator))
+                   )
+           )
   )
 
 
@@ -704,14 +707,14 @@ The result is an alist of tags and + and - symbols, as used in
   (interactive
    (list
     (completing-read "Tag category (\"-\" for uncategorised): " (cons "" (cons "-" (creichen/mu4e-tagging-categories-get)))
-		     nil
-		     t
-		     (creichen/mu4e-tagging--query-current-category-string)
-		     'creichen/mu4e-tagging-query-category-history)
+                     nil
+                     t
+                     (creichen/mu4e-tagging--query-current-category-string)
+                     'creichen/mu4e-tagging-query-category-history)
     ))
   (creichen/mu4e-tagging-query-submode-enable)
   (setq creichen/mu4e-tagging-query-category
-	(creichen/mu4e-tagging--query-category-parse category))
+        (creichen/mu4e-tagging--query-category-parse category))
   )
 
 (defun creichen/mu4e-tagging-query-flags (tags)
@@ -720,17 +723,17 @@ The parameter follows the same format as `creichen/mu4e-tagging--query-flags-par
   (interactive
    (list
     (completing-read-multiple "Flags to require / disallow: "
-			      (let ((flags (creichen/mu4e-tagging-flags-get)))
-				(append (mapcar (lambda (flag) (concat "+" (car flag))) flags)
-					(mapcar (lambda (flag) (concat "-" (car flag))) flags)))
-			      nil
-			      nil
-			      (creichen/mu4e-tagging--query-current-flags-string)
-			      'creichen/mu4e-tagging-query-flags-history))
+                              (let ((flags (creichen/mu4e-tagging-flags-get)))
+                                (append (mapcar (lambda (flag) (concat "+" (car flag))) flags)
+                                        (mapcar (lambda (flag) (concat "-" (car flag))) flags)))
+                              nil
+                              nil
+                              (creichen/mu4e-tagging--query-current-flags-string)
+                              'creichen/mu4e-tagging-query-flags-history))
    )
   (creichen/mu4e-tagging-query-submode-enable)
   (setq creichen/mu4e-tagging-query-flags
-	(creichen/mu4e-tagging--query-flags-parse tags))
+        (creichen/mu4e-tagging--query-flags-parse tags))
   )
 
 
@@ -741,8 +744,8 @@ The parameter follows the same format as `creichen/mu4e-tagging--query-flags-par
   "Called after changing the query filter configuration.
 Currently hardwired to run `mu4e-search-retun`."
   ;; (message "filtering: [%s] %s"
-  ;; 	   (creichen/mu4e-tagging--query-current-flags-string)
-  ;; 	   (creichen/mu4e-tagging--query-current-category-string))
+  ;;            (creichen/mu4e-tagging--query-current-flags-string)
+  ;;            (creichen/mu4e-tagging--query-current-category-string))
   (mu4e-search-rerun)
   )
 
@@ -767,24 +770,24 @@ Decodes the category or flag by looking at the most recent command.
 For flags, if the flag is currently blocked, it will be ignored instead of being required."
   (interactive)
   (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
-	  (is-flag (plist-get taginfo :flag))
-	  )
+          (is-flag (plist-get taginfo :flag))
+          )
     (if (not is-flag)
-	;; category?
-	(creichen/mu4e-tagging-query-category tag-name)
+        ;; category?
+        (creichen/mu4e-tagging-query-category tag-name)
       ;; flag?
       (progn
-	(creichen/mu4e-tagging-query-submode-enable)
-	(setq creichen/mu4e-tagging-query-flags
-	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
-		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
-		(if (eq '- last-bind)
-		    ;; From -flag to ignoring the flag
-		    filtered-flags
-		  ;; otherwise +flag
-		  (cons (cons tag-name '+) filtered-flags)
-		  )))
-	)))
+        (creichen/mu4e-tagging-query-submode-enable)
+        (setq creichen/mu4e-tagging-query-flags
+              (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
+                     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
+                (if (eq '- last-bind)
+                    ;; From -flag to ignoring the flag
+                    filtered-flags
+                  ;; otherwise +flag
+                  (cons (cons tag-name '+) filtered-flags)
+                  )))
+        )))
   (creichen/mu4e-tagging-query-rerun)
   )
 
@@ -794,24 +797,24 @@ Decodes the category or flag by looking at the most recent command.
 For flags, if the flag is currently required, it will be ignored instead of being blocked."
   (interactive)
   (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector) creichen/mu4e-tagging-reverse-key-table-tag))
-	  (is-flag (plist-get taginfo :flag))
-	  )
+          (is-flag (plist-get taginfo :flag))
+          )
     (if (not is-flag)
-	;; category?
-	(creichen/mu4e-tagging-query-category "")
+        ;; category?
+        (creichen/mu4e-tagging-query-category "")
       ;; flag?
       (progn
-	(creichen/mu4e-tagging-query-submode-enable)
-	(setq creichen/mu4e-tagging-query-flags
-	      (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
-		     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
-		(if (eq '+ last-bind)
-		    ;; From +flag to ignoring the flag
-		    filtered-flags
-		  ;; otherwise -flag
-		  (cons (cons tag-name '-) filtered-flags)
-		  )))
-	)))
+        (creichen/mu4e-tagging-query-submode-enable)
+        (setq creichen/mu4e-tagging-query-flags
+              (let* ((last-bind (alist-get tag-name creichen/mu4e-tagging-query-flags))
+                     (filtered-flags (assq-delete-all tag-name creichen/mu4e-tagging-query-flags)))
+                (if (eq '+ last-bind)
+                    ;; From +flag to ignoring the flag
+                    filtered-flags
+                  ;; otherwise -flag
+                  (cons (cons tag-name '-) filtered-flags)
+                  )))
+        )))
   (creichen/mu4e-tagging-query-rerun)
   )
 
@@ -823,24 +826,24 @@ For flags, if the flag is currently required, it will be ignored instead of bein
   (let ((buf (creichen/mu4e-tagging-mail-info-buf)))
     (when buf
       (let* ((msg (mu4e-message-at-point))
-	     (path (when msg
-		     (mu4e-message-readable-path))))
-	(save-excursion
-	  (with-current-buffer buf
-	    (read-only-mode)
-	    (let ((inhibit-read-only t))
-	      (erase-buffer)
-	      (if msg
-		  (progn
-		    (insert "Mailinfo\n")
-		    (insert (format "%s" msg))
-		    (insert-file-contents path)
-		    )
-		;; if msg is NIL:
-		(insert "Nomail")
-		)))
-	  )
-	)))
+             (path (when msg
+                     (mu4e-message-readable-path))))
+        (save-excursion
+          (with-current-buffer buf
+            (read-only-mode)
+            (let ((inhibit-read-only t))
+              (erase-buffer)
+              (if msg
+                  (progn
+                    (insert "Mailinfo\n")
+                    (insert (format "%s" msg))
+                    (insert-file-contents path)
+                    )
+                ;; if msg is NIL:
+                (insert "Nomail")
+                )))
+          )
+        )))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -903,10 +906,10 @@ Returns a vector of length num-columns with the largest string length observed f
   (let ((widths (make-vector num-columns 0)))
     (dolist (row rows)
       (seq-do-indexed (lambda (elt index)
-			(aset widths index
-			      (max (length elt)
-				   (aref widths index))))
-		      row)
+                        (aset widths index
+                              (max (length elt)
+                                   (aref widths index))))
+                      row)
       )
     widths))
 
@@ -914,18 +917,18 @@ Returns a vector of length num-columns with the largest string length observed f
   "For a TAGINFO of (NAME . PLIST), this returns a list of five propertized strings
 that show the information to be displayed in the tag info table."
   (-let* (((tag-name . tag-pinfo) taginfo)
-	  (keybind (plist-get tag-pinfo :key))
-	  (is-flag (plist-get tag-pinfo :flag))
-	  ;(tagname (plist-get tag-pinfo :tag))
-	  (short-tagstring (creichen/mu4e-tagging-propertized-name tag-name t))
-	  ;;(tagstring (creichen/mu4e-tagging-propertized-name tag-name nil))
-	  (filter-status (if is-flag
-			     (creichen/mu4e-tagging--propertized-info
-			      (alist-get tag-name creichen/mu4e-tagging-query-flags))
-			   ;; categorical
-			   (creichen/mu4e-tagging--propertized-info (eq creichen/mu4e-tagging-query-category tag-name))
-			   ))
-	  )
+          (keybind (plist-get tag-pinfo :key))
+          (is-flag (plist-get tag-pinfo :flag))
+          ;(tagname (plist-get tag-pinfo :tag))
+          (short-tagstring (creichen/mu4e-tagging-propertized-name tag-name t))
+          ;;(tagstring (creichen/mu4e-tagging-propertized-name tag-name nil))
+          (filter-status (if is-flag
+                             (creichen/mu4e-tagging--propertized-info
+                              (alist-get tag-name creichen/mu4e-tagging-query-flags))
+                           ;; categorical
+                           (creichen/mu4e-tagging--propertized-info (eq creichen/mu4e-tagging-query-category tag-name))
+                           ))
+          )
     (list
      (creichen/mu4e-tagging--show-keybind keybind)
      (if is-flag "f" "")
@@ -940,24 +943,24 @@ that show the information to be displayed in the tag info table."
   "Translates MODE, which must be t, nil, '+, or '-, into a suitable propertized string
 to describe whether the given tag is required, blocked, or ignored by the filter."
   (let ((string (cond ((eq mode t)
-		       "required")
-		      ((eq mode '+)
-		       "required")
-		      ((eq mode '-)
-		       "blocked")
-		      (t
-		       "shown")
-		      ))
-	)
+                       "required")
+                      ((eq mode '+)
+                       "required")
+                      ((eq mode '-)
+                       "blocked")
+                      (t
+                       "shown")
+                      ))
+        )
     (propertize string 'face
-		(cond ((eq mode t)
-		       'creichen/mu4e-tagging-filter-require)
-		      ((eq mode '+)
-		       'creichen/mu4e-tagging-filter-require)
-		      ((eq mode '-)
-		       'creichen/mu4e-tagging-filter-block)
-		      (t
-		       'creichen/mu4e-tagging-filter-disabled)))
+                (cond ((eq mode t)
+                       'creichen/mu4e-tagging-filter-require)
+                      ((eq mode '+)
+                       'creichen/mu4e-tagging-filter-require)
+                      ((eq mode '-)
+                       'creichen/mu4e-tagging-filter-block)
+                      (t
+                       'creichen/mu4e-tagging-filter-disabled)))
     )
   )
 
@@ -966,58 +969,58 @@ to describe whether the given tag is required, blocked, or ignored by the filter
   (let ((buf (creichen/mu4e-tagging-tag-info-buf)))
     (when buf
       (let ((msg (mu4e-message-at-point)))
-	(save-excursion
-	  (with-current-buffer buf
-	    (read-only-mode)
-	    (let ((inhibit-read-only t))
-	      (erase-buffer)
-	      (creichen/mu4e-tagging-tags-info-mode)
-	      (let* ((table-data-main
-		      (mapcar #'creichen/mu4e-tagging--list-tag-info
-			      (append
-			       (creichen/mu4e-tagging-categories-get)
-			       (creichen/mu4e-tagging-flags-get))))
-		     ;; prepend "uncategorised" row
-		     (table-data (cons
-				  (list
-				   (creichen/mu4e-tagging--show-keybind creichen/mu4e-tagging-uncategorized-suffix)
-				   ""
-				   ""
-				   (creichen/mu4e-tagging--propertized-info (eq creichen/mu4e-tagging-query-category 'uncategorized))
-				   "(uncategorised)"
-				   )
-				  table-data-main))
-		     (column-widths (creichen/mu4e-tagging--column-widths table-data 5))
-		     (query-keybind (creichen/mu4e-tagging--show-keybind creichen/mu4e-tagging-query-prefix))
-		     )
-		(setq tabulated-list-format (vector
-					     `("Key"          ,(max 3 (aref column-widths 0)) t)
-					     `("Flag"         ,(max 4 (aref column-widths 1)) t)
-					     `("Tag"          ,(max 3 (aref column-widths 2)) t :right-align t)
-					     `(,query-keybind ,(max 8 (length query-keybind) (aref column-widths 3)) t :right-align t)
-					     `(""            1 t)
-					     ))
-		(tabulated-list-init-header)
-		(setq tabulated-list-entries
-		      ;; expects list of (nil [key  flag  tag  keybind  info])
-		      (mapcar (lambda (row)
-				(list nil (vconcat row)))
-			      table-data))
-		(tabulated-list-print)
-		;; alternative approach with vtable:
-		;; 	    (make-vtable
-		;; 	     :columns '(:name "Key" :align left)
-		;; 	     :objects rows
-		;; 	     ;:face ...
-		;; 	    )
-		)
-	      ;; resize window
-	      (when creichen/mu4e-tagging-tag-info-window
-		(fit-window-to-buffer creichen/mu4e-tagging-tag-info-window))
-	      ;; hide cursor
-	      (setq cursor-type nil)
-	      )))
-	))
+        (save-excursion
+          (with-current-buffer buf
+            (read-only-mode)
+            (let ((inhibit-read-only t))
+              (erase-buffer)
+              (creichen/mu4e-tagging-tags-info-mode)
+              (let* ((table-data-main
+                      (mapcar #'creichen/mu4e-tagging--list-tag-info
+                              (append
+                               (creichen/mu4e-tagging-categories-get)
+                               (creichen/mu4e-tagging-flags-get))))
+                     ;; prepend "uncategorised" row
+                     (table-data (cons
+                                  (list
+                                   (creichen/mu4e-tagging--show-keybind creichen/mu4e-tagging-uncategorized-suffix)
+                                   ""
+                                   ""
+                                   (creichen/mu4e-tagging--propertized-info (eq creichen/mu4e-tagging-query-category 'uncategorized))
+                                   "(uncategorised)"
+                                   )
+                                  table-data-main))
+                     (column-widths (creichen/mu4e-tagging--column-widths table-data 5))
+                     (query-keybind (creichen/mu4e-tagging--show-keybind creichen/mu4e-tagging-query-prefix))
+                     )
+                (setq tabulated-list-format (vector
+                                             `("Key"          ,(max 3 (aref column-widths 0)) t)
+                                             `("Flag"         ,(max 4 (aref column-widths 1)) t)
+                                             `("Tag"          ,(max 3 (aref column-widths 2)) t :right-align t)
+                                             `(,query-keybind ,(max 8 (length query-keybind) (aref column-widths 3)) t :right-align t)
+                                             `(""            1 t)
+                                             ))
+                (tabulated-list-init-header)
+                (setq tabulated-list-entries
+                      ;; expects list of (nil [key  flag  tag  keybind  info])
+                      (mapcar (lambda (row)
+                                (list nil (vconcat row)))
+                              table-data))
+                (tabulated-list-print)
+                ;; alternative approach with vtable:
+                ;;             (make-vtable
+                ;;              :columns '(:name "Key" :align left)
+                ;;              :objects rows
+                ;;              ;:face ...
+                ;;             )
+                )
+              ;; resize window
+              (when creichen/mu4e-tagging-tag-info-window
+                (fit-window-to-buffer creichen/mu4e-tagging-tag-info-window))
+              ;; hide cursor
+              (setq cursor-type nil)
+              )))
+        ))
     )
   )
 
@@ -1060,14 +1063,14 @@ for the tags you wish to manage in this mode."
 
   (progn
     (if creichen/mu4e-tagging-minor-mode
-	(progn
-	  (creichen/mu4e-tagging-minor-mode-enable-handler)
-	  (message "mu4e-tagging-minor-mode enabled")
-	  )
+        (progn
+          (creichen/mu4e-tagging-minor-mode-enable-handler)
+          (message "mu4e-tagging-minor-mode enabled")
+          )
       (progn
-	(creichen/mu4e-tagging-minor-mode-disable-handler)
-	(message "mu4e-tagging-minor-mode disabled")
-	))
+        (creichen/mu4e-tagging-minor-mode-disable-handler)
+        (message "mu4e-tagging-minor-mode disabled")
+        ))
     ))
 
 (defun creichen/mu4e-tagging-minor-mode-setup-default-bindings ()
@@ -1113,33 +1116,33 @@ meaning that they are mutually exclusive.  Tags with :flag t
 are flags, meaning that any number of them can be 'added' to
 any category."
   :type '(alist :tag "Blah"
-		:value-type
-		(plist :options ((:tag   string)
-		    (:short string)
-		    (:key   key)
-		    (:flag  boolean :doc "Non-exclusive, can be toggled on and off")
-		    (:foreground (choice (const :tag "none" nil)
-					 (color :tag "Foreground color")))
-		    (:background (choice (const :tag "none" nil)
-					 (color :tag "Background color")))
-		    (:weight (choice (const :tag "none" nil)
-				     (const ultrathin)
-				     (const light)
-				     (const semilight)
-				     (const normal)
-				     (const medium)
-				     (const semibold)
-				     (const bold)
-				     (const ultra-bold)))
-		    (:box (choice (const :tag "none" nil)
-				  (const :tag "simple" t)
-				  (color :tag "color")
-				  (plist :options ((:line-width (choice (integer :tag "width+height (positive: extrude, negative: intrude)")
-									(cons :tag "width . height")))
-						   (:color color)
-						   (:style (choice (const line)
-								   (const wave)))))))
-		    )))
+                :value-type
+                (plist :options ((:tag   string)
+                    (:short string)
+                    (:key   key)
+                    (:flag  boolean :doc "Non-exclusive, can be toggled on and off")
+                    (:foreground (choice (const :tag "none" nil)
+                                         (color :tag "Foreground color")))
+                    (:background (choice (const :tag "none" nil)
+                                         (color :tag "Background color")))
+                    (:weight (choice (const :tag "none" nil)
+                                     (const ultrathin)
+                                     (const light)
+                                     (const semilight)
+                                     (const normal)
+                                     (const medium)
+                                     (const semibold)
+                                     (const bold)
+                                     (const ultra-bold)))
+                    (:box (choice (const :tag "none" nil)
+                                  (const :tag "simple" t)
+                                  (color :tag "color")
+                                  (plist :options ((:line-width (choice (integer :tag "width+height (positive: extrude, negative: intrude)")
+                                                                        (cons :tag "width . height")))
+                                                   (:color color)
+                                                   (:style (choice (const line)
+                                                                   (const wave)))))))
+                    )))
   :initialize 'creichen/mu4e-tagging-update-customize-reset
   :set (lambda (symbol value)
          (set-default symbol value)

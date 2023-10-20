@@ -63,7 +63,8 @@
 - State "DONE"       from "TODO"       [2023-10-15 So 16:58]
 ** DONE size info window automatically (might already be implemented?)
 - State "DONE"       from "TODO"       [2023-10-16 Mon 10:02]
-** TODO cleanup
+** DONE cleanup
+- State "DONE"       from "TODO"       [2023-10-20 Fri 06:43]
 *** DONE fix re-enable after previous disable
 - State "DONE"       from "TODO"       [2023-10-15 So 17:15]
 *** DONE fix gradual progression for flags
@@ -87,6 +88,49 @@ Key   Flag   Tag  [C-w]
 - State "DONE"       from "TODO"       [2023-10-16 Mon 10:00]
 *** DONE missing defun docs
 - State "DONE"       from "TODO"       [2023-10-16 Mon 10:30]
+** TODO code style cleanup
+*** TODO package-lint
+*** TODO (provide) at END
+*** TODO document deps
+*** TODO 80 columns
+*** TODO 71 columsn for doc-strings
+**** TODO mention EVERY arg, affected var/custom
+**** TODO Use `..' for refs
+**** TODO Args always CAPS
+**** TODO M-x checkdoc
+**** TODO key bindings refs: https://www.gnu.org/software/emacs/manual/html_node/elisp/Keys-in-Documentation.html
+*** TODO no standalone ")"
+*** TODO vertically align formals
+*** TODO avoid unnecessary (progn)
+*** TODO use (unless) instead of (when (not))
+*** TODO no -p for "foo", only for "foo-bar", e.g. "foop" and "foo-bar-p"
+*** TODO no lambdas for hooks or global variables
+*** TODO no hard-quoted (lambda)
+*** TODO autoload cookies
+*** TODO test macros: edebug specs
+*** TODO boolean flags: "-flag" suffix
+*** TODO max 24 lines per function
+*** TODO C-x 4 a : ChangeLog, share with commit messages
+*** TODO use add-function :filter-args for composing the mu4e-filter, remove-function afterwards
+*** TODO major mode (tag buffer): (put 'funny-mode 'mode-class 'special)
+*** TODO test function composition
+*** TODO for both changelog and commit messages, put fun name in parentheses: (fun-name)
+*** TODO package-lint
+** TODO UI refinements
+*** TODO :+key :-key for enabling/disabling tags
+*** TODO use prefix commands for untag, remove-filter, negative-filter
+*** TODO generic '-' key optional
+*** TODO advertise other keybindings in tag window
+*** TODO allow negative filters on categories
+*** TODO use vtable for niceness
+*** TODO mail window: support custom modes
+**** TODO support "no mail window"
+**** TODO support current display-raw mode
+**** TODO support standard mu4e-body viewer
+**** TODO support "auto-run lazily after x milliseconds"
+**** TODO support "run external program" plus custom postprocessing for propertization
+**** TODO support "view mode with custom keymap"
+**** TODO support "window with lazy content (+keybind info)"
 ** TODO manual decision support
 *** TODO utilise mail window (probably needs external support, e.g., rust's `maildir`)
 *** TODO highlight current tags in tag window

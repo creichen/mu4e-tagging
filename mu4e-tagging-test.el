@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t; -*-
 ;;; mu4e-tagging-test.el --- tests for minor mode for quick tagging in mu4e -*- lexical-binding: t -*-
 
 (require 'package)
@@ -11,40 +12,40 @@
 
 (setq m4t-test-state-variables
       '(creichen/mu4e-tagging-tags
-	creichen/mu4e-tagging-minor-mode-keymap
-	creichen/mu4e-tagging-minor-mode-auto-keymap
-	creichen/mu4e-tagging-known-tags
-	creichen/mu4e-tagging-categories-var
-	creichen/mu4e-tagging-flags-var
-	creichen/mu4e-tagging-reverse-key-table-tag
-	creichen/mu4e-tagging-reverse-key-table-untag
-	creichen/mu4e-tagging-untag-prefix
-	creichen/mu4e-tagging-tag-info-window
-	creichen/mu4e-tagging-mail-info-window
-	creichen/mu4e-tagging-tag-info-window-buf
-	creichen/mu4e-tagging-mail-info-window-buf
-	creichen/mu4e-tagging-query-flags
-	creichen/mu4e-tagging-query-category
-	creichen/mu4e-tagging-query-rewrite-function-backup
-	creichen/mu4e-tagging-query-separator
-	creichen/mu4e-tagging-query-rewrite-last-original-query
-	creichen/mu4e-tagging-query-rewrite-last-rewritten-query
-	))
+        creichen/mu4e-tagging-minor-mode-keymap
+        creichen/mu4e-tagging-minor-mode-auto-keymap
+        creichen/mu4e-tagging-known-tags
+        creichen/mu4e-tagging-categories-var
+        creichen/mu4e-tagging-flags-var
+        creichen/mu4e-tagging-reverse-key-table-tag
+        creichen/mu4e-tagging-reverse-key-table-untag
+        creichen/mu4e-tagging-untag-prefix
+        creichen/mu4e-tagging-tag-info-window
+        creichen/mu4e-tagging-mail-info-window
+        creichen/mu4e-tagging-tag-info-window-buf
+        creichen/mu4e-tagging-mail-info-window-buf
+        creichen/mu4e-tagging-query-flags
+        creichen/mu4e-tagging-query-category
+        creichen/mu4e-tagging-query-rewrite-function-backup
+        creichen/mu4e-tagging-query-separator
+        creichen/mu4e-tagging-query-rewrite-last-original-query
+        creichen/mu4e-tagging-query-rewrite-last-rewritten-query
+        ))
 
 
 (defun m4t-test-state-backup ()
   "Backs up all relevant state into an alist."
   (mapcar (lambda (sym)
-	    (cons sym (eval sym)))
-	  m4t-test-state-variables)
+            (cons sym (eval sym)))
+          m4t-test-state-variables)
   )
 
 (defun m4t-test-state-restore (backups)
   "Restores all relevant state from an alist passed as argument."
   (dolist (item backups)
-	  (-let (((sym . old-binding) item))
-	    (setq sym old-binding))
-	  )
+          (-let (((sym . old-binding) item))
+            (setq sym old-binding))
+          )
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -53,7 +54,7 @@
 (ert-deftest test-state-backup ()
   "Check that the test harness' backup functionality records all protected variables."
   (should (equal m4t-test-state-variables
-		 (mapcar 'car (m4t-test-state-backup))))
+                 (mapcar 'car (m4t-test-state-backup))))
   (dolist (binding (m4t-test-state-backup))
     (cdr binding))
   )
@@ -73,40 +74,40 @@
   "Run the test in BODY and restore the creichen/mu4e-tagging state afterwards."
   (let ((backup (m4t-test-state-backup)))
     (condition-case result
-	`(progn
-	   ,@BODY
-	   )
+        `(progn
+           ,@BODY
+           )
       (:success (progn
-		  (m4t-test-state-restore backup)
-		  result)
-		)
+                  (m4t-test-state-restore backup)
+                  result)
+                )
       (t (progn
-	   (m4t-test-state-restore backup)
-	   throw result))))
+           (m4t-test-state-restore backup)
+           throw result))))
   )
 
 (defmacro should-preserve-all-state (&rest BODY)
   "Run the test in BODY and assert that the state of creichen/mu4e-tagging is not altered."
   (let ((backup (m4t-test-state-backup)))
     (condition-case result
-	`(progn
-	   ,@BODY
-	   )
+        `(progn
+           ,@BODY
+           )
       (:success (progn
-		  (should (equal backup (m4t-test-state-backup)))
-		  (m4t-test-state-restore backup)
-		  result)
-		)
+                  (should (equal backup (m4t-test-state-backup)))
+                  (m4t-test-state-restore backup)
+                  result)
+                )
       (t (progn
-	   (m4t-test-state-restore backup)
-	   throw result))))
+           (m4t-test-state-restore backup)
+           throw result))))
   )
 
 (ert-deftest test-re-customise-tagging-tags ()
   "Check that re-updating to the default tags does not change the state."
   (should-preserve-all-state
    (customize-set-variable 'creichen/mu4e-tagging-tags
-			   creichen/mu4e-tagging-tags)))
+                           creichen/mu4e-tagging-tags)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helpers
@@ -123,12 +124,12 @@
 (defun setup-test-tags ()
   "Sets a particualr tags configuration that we use for testing here."
   (customize-set-variable 'creichen/mu4e-tagging-tags
-			  '(("a" :key "a" :short "A" :flag t :foreground "yellow" :background "black")
-			    ("bassoon" :key "b" :short "bas")
-			    ("ba")
-			    ("chips")
-			    ("particularly-lengthy" :short "M" :flag t :box t :weight "ultra-thin")
-			  )))
+                          '(("a" :key "a" :short "A" :flag t :foreground "yellow" :background "black")
+                            ("bassoon" :key "b" :short "bas")
+                            ("ba")
+                            ("chips")
+                            ("particularly-lengthy" :short "M" :flag t :box t :weight "ultra-thin")
+                          )))
 
 
 (ert-deftest test-customise--category-tags ()
@@ -136,7 +137,7 @@
   (protecting-state
    (setup-test-tags)
    (should (equal '("bassoon" "ba" "chips")
-		  (creichen/mu4e-tagging-known-category-tags)))
+                  (creichen/mu4e-tagging-known-category-tags)))
   ))
 
 (ert-deftest test-customise--known-tags ()
@@ -144,7 +145,7 @@
   (protecting-state
    (setup-test-tags)
    (should (equal '("a" "ba" "bassoon" "chips" "particularly-lengthy")
-		  (sorted-strings (hash-table-keys creichen/mu4e-tagging-known-tags))))
+                  (sorted-strings (hash-table-keys creichen/mu4e-tagging-known-tags))))
    ))
 
 (ert-deftest test-customise--auto-keymap ()
@@ -152,35 +153,35 @@
   (protecting-state
    (setup-test-tags)
    (should (not (null
-		  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
-				 (kbd "a")))))
+                  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
+                                 (kbd "a")))))
    (should (equal "a"
-		  (car (gethash [?a] creichen/mu4e-tagging-reverse-key-table-tag
-				))))
+                  (car (gethash [?a] creichen/mu4e-tagging-reverse-key-table-tag
+                                ))))
    (should (not (null
-		  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
-				 (kbd "c")))))
+                  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
+                                 (kbd "c")))))
    (should (equal "chips"
-		  (car (gethash [?c] creichen/mu4e-tagging-reverse-key-table-tag
-				))))
+                  (car (gethash [?c] creichen/mu4e-tagging-reverse-key-table-tag
+                                ))))
    (should (not (null
-		  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
-				 (kbd "1")))))
+                  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
+                                 (kbd "1")))))
    (should (equal "ba"
-		  (car (gethash [?1] creichen/mu4e-tagging-reverse-key-table-tag
-				))))
+                  (car (gethash [?1] creichen/mu4e-tagging-reverse-key-table-tag
+                                ))))
    (should (not (null
-		  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
-				 (kbd "b")))))
+                  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
+                                 (kbd "b")))))
    (should (equal "bassoon"
-		  (car (gethash [?b] creichen/mu4e-tagging-reverse-key-table-tag
-				))))
+                  (car (gethash [?b] creichen/mu4e-tagging-reverse-key-table-tag
+                                ))))
    (should (not (null
-		  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
-				 (kbd "p")))))
+                  (keymap-lookup creichen/mu4e-tagging-minor-mode-auto-keymap
+                                 (kbd "p")))))
    (should (equal "particularly-lengthy"
-		  (car (gethash [?p] creichen/mu4e-tagging-reverse-key-table-tag
-				))))
+                  (car (gethash [?p] creichen/mu4e-tagging-reverse-key-table-tag
+                                ))))
   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -303,11 +304,11 @@
   "Category strings are parsed correctly."
   (should-preserve-all-state
    (should (equal nil
-		  (creichen/mu4e-tagging--query-category-parse "")))
+                  (creichen/mu4e-tagging--query-category-parse "")))
    (should (equal 'uncategorized
-		  (creichen/mu4e-tagging--query-category-parse "-")))
+                  (creichen/mu4e-tagging--query-category-parse "-")))
    (should (equal "bassoon"
-		  (creichen/mu4e-tagging--query-category-parse "bassoon")))
+                  (creichen/mu4e-tagging--query-category-parse "bassoon")))
    )
   )
 
@@ -315,19 +316,19 @@
   "Singel flag specifications are parsed correctly."
   (should-preserve-all-state
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flag-parse "")))
+                  (creichen/mu4e-tagging--query-flag-parse "")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flag-parse "=foo")))
+                  (creichen/mu4e-tagging--query-flag-parse "=foo")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flag-parse "+")))
+                  (creichen/mu4e-tagging--query-flag-parse "+")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flag-parse "-")))
+                  (creichen/mu4e-tagging--query-flag-parse "-")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flag-parse "-")))
+                  (creichen/mu4e-tagging--query-flag-parse "-")))
    (should (equal '("foo" . -)
-		  (creichen/mu4e-tagging--query-flag-parse "-foo")))
+                  (creichen/mu4e-tagging--query-flag-parse "-foo")))
    (should (equal '("bar" . +)
-		  (creichen/mu4e-tagging--query-flag-parse "+bar")))
+                  (creichen/mu4e-tagging--query-flag-parse "+bar")))
    )
   )
 
@@ -335,19 +336,19 @@
   "Multi-flag specifications are parsed correctly."
   (should-preserve-all-state
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flags-parse "")))
+                  (creichen/mu4e-tagging--query-flags-parse "")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flags-parse ",")))
+                  (creichen/mu4e-tagging--query-flags-parse ",")))
    (should (equal nil
-		  (creichen/mu4e-tagging--query-flags-parse "foo,bar")))
+                  (creichen/mu4e-tagging--query-flags-parse "foo,bar")))
    (should (equal '(("foo" . -))
-		  (creichen/mu4e-tagging--query-flags-parse "-foo")))
+                  (creichen/mu4e-tagging--query-flags-parse "-foo")))
    (should (equal '(("bar" . +))
-		  (creichen/mu4e-tagging--query-flags-parse "+bar")))
+                  (creichen/mu4e-tagging--query-flags-parse "+bar")))
    (should (equal '(("bar" . +) ("foo" . -))
-		  (creichen/mu4e-tagging--query-flags-parse "+bar,-foo")))
+                  (creichen/mu4e-tagging--query-flags-parse "+bar,-foo")))
    (should (equal '(("bar" . +) ("foo" . -))
-		  (creichen/mu4e-tagging--query-flags-parse "+bar,error,-foo")))
+                  (creichen/mu4e-tagging--query-flags-parse "+bar,error,-foo")))
    )
   )
 
@@ -355,17 +356,17 @@
   "After setting the category, the category query state stringification looks as expected."
   (should-preserve-all-state
    (should (equal ""
-		  (creichen/mu4e-tagging--query-current-category-string)))
+                  (creichen/mu4e-tagging--query-current-category-string)))
    (creichen/mu4e-tagging-query-category "")
    (should (equal ""
-		  (creichen/mu4e-tagging--query-current-category-string)))
+                  (creichen/mu4e-tagging--query-current-category-string)))
    (creichen/mu4e-tagging-query-category "-")
    (should (equal 'uncategorized creichen/mu4e-tagging-query-category))
    (should (equal "-"
-		  (creichen/mu4e-tagging--query-current-category-string)))
+                  (creichen/mu4e-tagging--query-current-category-string)))
    (creichen/mu4e-tagging-query-category "bassoon")
    (should (equal "bassoon"
-		  (creichen/mu4e-tagging--query-current-category-string)))
+                  (creichen/mu4e-tagging--query-current-category-string)))
    (creichen/mu4e-tagging-query-submode-disable)
    )
   )
@@ -374,19 +375,19 @@
   "After setting the query flags, the flag query state stringification looks as expected."
   (should-preserve-all-state
    (should (equal ""
-		  (creichen/mu4e-tagging--query-current-flags-string)))
+                  (creichen/mu4e-tagging--query-current-flags-string)))
    (creichen/mu4e-tagging-query-flags "")
    (should (equal nil
-		  creichen/mu4e-tagging-query-flags))
+                  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-flags "+a")
    (should (equal '(("a" . +))
-		  creichen/mu4e-tagging-query-flags))
+                  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-flags "-particularly-lengthy,+a")
    (should (equal '(("particularly-lengthy" . -) ("a" . +))
-		  creichen/mu4e-tagging-query-flags))
+                  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-flags "-a")
    (should (equal '(("a" . -))
-		  creichen/mu4e-tagging-query-flags))
+                  creichen/mu4e-tagging-query-flags))
    (creichen/mu4e-tagging-query-submode-disable)
    )
   )
