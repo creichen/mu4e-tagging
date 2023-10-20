@@ -112,6 +112,35 @@ Key   Flag   Tag  [C-w]
 - State "DONE"       from "TODO"       [2023-10-20 Fri 12:31]
 *** DONE no standalone ")"
 - State "DONE"       from "TODO"       [2023-10-20 Fri 12:31]
+** TODO UI refinements
+*** DONE merge the key-tables
+- State "DONE"       from "TODO"       [2023-10-20 Fri 15:16]
+*** TODO more generic dispatch strategy
+;; Maps key vectors to pairs (ACTION . TAG-NAME), When the user
+;; presses a key sequence, `mu4e-tagging--key-dispatch' selects the
+;; appropriate function from ACTION (depending on the prefix commands)
+;; and calls it with the parameter TAG-NAME.
+
+;; See:
+;; - `mu4e-tagging--action-tag'
+;; - `mu4e-tagging--action-untag'
+;; - `mu4e-tagging--action-query-require'
+;; - `mu4e-tagging--action-query-block'
+
+*** TODO :+key :-key for enabling/disabling tags
+*** TODO use prefix commands for untag, remove-filter, negative-filter
+*** TODO retire generic '-' key optional
+*** TODO advertise other keybindings in tag window
+*** TODO allow negative filters on categories
+*** TODO use vtable for niceness
+*** TODO mail window: support custom modes
+**** TODO support "no mail window"
+**** TODO support current display-raw mode
+**** TODO support standard mu4e-body viewer
+**** TODO support "auto-run lazily after x milliseconds"
+**** TODO support "run external program" plus custom postprocessing for propertization
+**** TODO support "view mode with custom keymap"
+**** TODO support "window with lazy content (+keybind info)"
 ** Refine coding style once again
 *** TODO key bindings refs: https://www.gnu.org/software/emacs/manual/html_node/elisp/Keys-in-Documentation.html
 *** TODO vertically align formals
@@ -130,27 +159,11 @@ Key   Flag   Tag  [C-w]
 *** TODO test function composition
 *** TODO for both changelog and commit messages, put fun name in parentheses: (fun-name)
 *** TODO package-lint
-** TODO UI refinements
-*** TODO :+key :-key for enabling/disabling tags
-*** TODO use prefix commands for untag, remove-filter, negative-filter
-*** TODO generic '-' key optional
-*** TODO advertise other keybindings in tag window
-*** TODO allow negative filters on categories
-*** TODO use vtable for niceness
-*** TODO mail window: support custom modes
-**** TODO support "no mail window"
-**** TODO support current display-raw mode
-**** TODO support standard mu4e-body viewer
-**** TODO support "auto-run lazily after x milliseconds"
-**** TODO support "run external program" plus custom postprocessing for propertization
-**** TODO support "view mode with custom keymap"
-**** TODO support "window with lazy content (+keybind info)"
 ** TODO manual decision support
 *** TODO utilise mail window (probably needs external support, e.g., rust's `maildir`)
 *** TODO highlight current tags in tag window
 ** TODO refactoring
 *** TODO remove all the "minor-mode" stuff where not needed
-*** TODO merge the key-tables
 *** TODO organise function definitions better
 ** TODO decision and inspection stats
 *** TODO track most recent "viewed tags" date per tag as reminder

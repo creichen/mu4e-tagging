@@ -38,13 +38,12 @@
 
 (setq m4t-test-state-variables
       '(mu4e-tagging-tags
-        mu4e-tagging-keymap
-        mu4e-tagging-auto-keymap
-        mu4e-tagging-known-tags
+        mu4e-tagging-mode-map
+        mu4e-tagging--dyn-keymap
+        mu4e-tagging--known-tags
         mu4e-tagging-categories-var
         mu4e-tagging-flags-var
-        mu4e-tagging-reverse-key-table-tag
-        mu4e-tagging-reverse-key-table-untag
+        mu4e-tagging--key-action-table
         mu4e-tagging-untag-prefix
         mu4e-tagging-tag-info-window
         mu4e-tagging-mail-info-window
@@ -170,41 +169,41 @@
    (setup-test-tags)
    (should (equal '("a" "ba" "bassoon" "chips" "particularly-lengthy")
                   (sorted-strings (hash-table-keys
-				   mu4e-tagging-known-tags))))))
+				   mu4e-tagging--known-tags))))))
 
-(ert-deftest test-customise--auto-keymap ()
+(ert-deftest test-customise--dyn-keymap ()
   "Customising the tags generates the correct set of category tags."
   (protecting-state
    (setup-test-tags)
    (should (not (null
-                  (keymap-lookup mu4e-tagging-auto-keymap
+                  (keymap-lookup mu4e-tagging--dyn-keymap
                                  (kbd "a")))))
    (should (equal "a"
-                  (car (gethash [?a] mu4e-tagging-reverse-key-table-tag
+                  (car (gethash [?a] mu4e-tagging--key-action-table
                                 ))))
    (should (not (null
-                  (keymap-lookup mu4e-tagging-auto-keymap
+                  (keymap-lookup mu4e-tagging--dyn-keymap
                                  (kbd "c")))))
    (should (equal "chips"
-                  (car (gethash [?c] mu4e-tagging-reverse-key-table-tag
+                  (car (gethash [?c] mu4e-tagging--key-action-table
                                 ))))
    (should (not (null
-                  (keymap-lookup mu4e-tagging-auto-keymap
+                  (keymap-lookup mu4e-tagging--dyn-keymap
                                  (kbd "1")))))
    (should (equal "ba"
-                  (car (gethash [?1] mu4e-tagging-reverse-key-table-tag
+                  (car (gethash [?1] mu4e-tagging--key-action-table
                                 ))))
    (should (not (null
-                  (keymap-lookup mu4e-tagging-auto-keymap
+                  (keymap-lookup mu4e-tagging--dyn-keymap
                                  (kbd "b")))))
    (should (equal "bassoon"
-                  (car (gethash [?b] mu4e-tagging-reverse-key-table-tag
+                  (car (gethash [?b] mu4e-tagging--key-action-table
                                 ))))
    (should (not (null
-                  (keymap-lookup mu4e-tagging-auto-keymap
+                  (keymap-lookup mu4e-tagging--dyn-keymap
                                  (kbd "p")))))
    (should (equal "particularly-lengthy"
-                  (car (gethash [?p] mu4e-tagging-reverse-key-table-tag
+                  (car (gethash [?p] mu4e-tagging--key-action-table
                                 ))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

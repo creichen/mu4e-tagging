@@ -58,89 +58,11 @@
 
 (defgroup mu4e-tagging
   nil
-  "Key bindings and faces for `mu4e-tagging-mode`."
+  "Configuration options and faces for `mu4e-tagging-mode`."
   :group 'mu4e-headers)
 
-(defvar-keymap mu4e-tagging-auto-keymap
-  :doc "Auxiliary keymap for mu4e-tagging-minor mode:
-this map is automatically set up to manage tagging
-commands, but is overriden by
-mu4e-tagging-keymap.")
-
-(defvar-keymap mu4e-tagging-keymap
-  :doc "Primary keymap for mu4e-tagging-minor mode."
-  :parent mu4e-tagging-auto-keymap)
-
-(defun mu4e-tagging-clear-tagging-auto-keymap ()
-  "Remove all key bindings from `mu4e-tagging-auto-keymap'."
-  (setcdr mu4e-tagging-auto-keymap (cdr (make-sparse-keymap))))
-
-(defvar mu4e-tagging-known-tags
-  (make-hash-table :test 'equal)
-  "All tags managed by mu4e-tagging-mode.
-
-Automatically constructed from `mu4e-tagging-tags'.  Maps to plist
-with tag properties.")
-
-(setq mu4e-tagging-reverse-key-table-tag
-      (make-hash-table :test 'equal))
-(setq mu4e-tagging-reverse-key-table-untag
-      (make-hash-table :test 'equal))
-
-(setq mu4e-tagging-categories-var nil)
-(setq mu4e-tagging-flags-var nil)
-
-(defun mu4e-tagging-categories-get ()
-  "Return alist of all category tags.
-
-The alist values are a plists that is guaranteed to contain
-:short and :key, and may contain the optional properties."
-  mu4e-tagging-categories-var)
-
-(defun mu4e-tagging-flags-get ()
-  "Retur an alist of all flag tags.
-
-The value is a plist that is guaranteed to contain :short and
-:key, and may contain the optional properties."
-  mu4e-tagging-flags-var)
-
-(defun mu4e-tagging--interceptor-tag ()
-  "Handle callbacks for tagging from keymap.
-
-Uses the most recent key sequence to identify the requested tag."
-  (interactive)
-  (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector)
-                                         mu4e-tagging-reverse-key-table-tag))
-          (is-flag (plist-get taginfo :flag))
-          (msg (mu4e-message-at-point))
-          (tag-add (concat "+" tag-name))
-          (tag-remove (if (not is-flag)
-                          (mapconcat (lambda (n) (concat "-" n))
-                                     (remove tag-name
-                                             (mu4e-tagging-known-category-tags))
-                                     ",")
-                        ;; no tags to remove for tag-add
-                        ""))
-          (tags-update  (concat
-                         tag-add
-                         (if (eq "" tag-remove)
-                             ""
-                           ",")
-                         tag-remove)))
-    (mu4e-action-retag-message msg tags-update)))
-
-
-(defun mu4e-tagging--interceptor-untag ()
-  "Handle callbacks for untagging from keymap.
-
-Uses the most recent key sequence to identify the requested tag."
-  (interactive)
-  (-let* (((tag-name . taginfo)
-             (gethash (this-command-keys-vector)
-                      mu4e-tagging-reverse-key-table-untag))
-          (msg (mu4e-message-at-point)))
-    (mu4e-action-retag-message msg (concat "-" tag-name))))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Tag updates
 
 (defun mu4e-tagging-decategorize ()
   "Remove any category tags for the message at point."
@@ -210,7 +132,7 @@ Returns TAG-PBODY with :key possibly updated.  Throws
                                              ;; backup list of keys:
                                              "1234567890")
                         when (not (keymap-lookup
-                                   mu4e-tagging-auto-keymap
+                                   mu4e-tagging--dyn-keymap
                                    (kbd (string c))))
                         return (key-description (vector c)))))
          (prefix-key-vec (mu4e-tagging-keyvec
@@ -221,7 +143,7 @@ Returns TAG-PBODY with :key possibly updated.  Throws
            (null key)
            (equal (string-to-char key)
                   mu4e-tagging-untag-prefix)
-           (keymap-lookup mu4e-tagging-keymap (kbd key)))
+           (keymap-lookup mu4e-tagging-mode-map (kbd key)))
       (throw 'keybind-impossible (list tag-name :key requested-key)))
     ;; Otherwise the keybind is available
     (let* ((key-tag (mu4e-tagging-keyvec key))
@@ -237,15 +159,15 @@ Returns TAG-PBODY with :key possibly updated.  Throws
                                      (mu4e-tagging-keystring key-tag)))
            (taginfo (cons tag-name tag-pbody-new)))
       ;; Bind the key to call the generic interceptor functions
-      (define-key mu4e-tagging-auto-keymap
+      (define-key mu4e-tagging--dyn-keymap
                   key-tag
                   #'mu4e-tagging--interceptor-tag)
-      (define-key mu4e-tagging-auto-keymap
+      (define-key mu4e-tagging--dyn-keymap
                   key-untag #'mu4e-tagging--interceptor-untag)
-      (define-key mu4e-tagging-auto-keymap
+      (define-key mu4e-tagging--dyn-keymap
                   key-query-require
                   #'mu4e-tagging--interceptor-query-require)
-      (define-key mu4e-tagging-auto-keymap
+      (define-key mu4e-tagging--dyn-keymap
                   key-query-block
                   #'mu4e-tagging--interceptor-query-block)
 
@@ -253,34 +175,36 @@ Returns TAG-PBODY with :key possibly updated.  Throws
       ;; out why they were called
       (puthash key-tag
                taginfo
-               mu4e-tagging-reverse-key-table-tag)
+               mu4e-tagging--key-action-table)
       (puthash key-untag
                taginfo
-               mu4e-tagging-reverse-key-table-untag)
+               mu4e-tagging--key-action-table)
       (puthash key-query-require
                taginfo
-               mu4e-tagging-reverse-key-table-tag)
+               mu4e-tagging--key-action-table)
       (puthash key-query-block
                taginfo
-               mu4e-tagging-reverse-key-table-tag)
+               mu4e-tagging--key-action-table)
       ;; Return updated tag-body plist
       tag-pbody-new)))
 
 (defun mu4e-tagging-alloc-default-keys ()
   "Install default dynamic key bindings."
-  (define-key mu4e-tagging-auto-keymap
+  (define-key mu4e-tagging--dyn-keymap
               (mu4e-tagging-keyvec mu4e-tagging-uncategorized-suffix)
               'mu4e-tagging-decategorize))
+
+;; Current list of all category tags
+(setq mu4e-tagging-categories-var nil)
 
 (defun mu4e-tagging-update-tags ()
   "Extract all tag information from the user specification.
 
 Plugs in defaults as needed."
-  (clrhash mu4e-tagging-reverse-key-table-tag)
-  (clrhash mu4e-tagging-reverse-key-table-untag)
-  (clrhash mu4e-tagging-known-tags)
+  (clrhash mu4e-tagging--key-action-table)
+  (clrhash mu4e-tagging--known-tags)
   ;(setq mu4e-tagging-known-category-tags nil)
-  (mu4e-tagging-clear-tagging-auto-keymap)
+  (mu4e-tagging-clear-tagging-dyn-keymap)
   (let ((prefix-key-vec (if (vectorp mu4e-tagging-untag-prefix)
                             mu4e-tagging-untag-prefix
                           (vector mu4e-tagging-untag-prefix)))
@@ -305,7 +229,7 @@ Plugs in defaults as needed."
                                                   tag-pbody-pre))
               (is-flag (plist-get tag-pbody :flag))
               (tag-info (cons tag-name tag-pbody)))
-        (puthash tag-name tag-pbody mu4e-tagging-known-tags)
+        (puthash tag-name tag-pbody mu4e-tagging--known-tags)
         (if is-flag
             ; flag:
             (push tag-info tag-infos-flags)
@@ -367,7 +291,7 @@ on demand."
          (if (window-live-p mu4e-tagging-tag-info-window)
              mu4e-tagging-tag-info-window
            (split-window-below (- -2 (hash-table-count
-                                        mu4e-tagging-known-tags)))))
+                                        mu4e-tagging--known-tags)))))
         (mail-info-window
          (if (window-live-p mu4e-tagging-mail-info-window)
              mu4e-tagging-mail-info-window
@@ -420,9 +344,16 @@ Also call `mu4e-tagging-query-submode-disable'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Querying and categorising tags
 
+(defvar mu4e-tagging--known-tags
+  (make-hash-table :test 'equal)
+  "All tags managed by `mu4e-tagging-mode'.
+
+Automatically constructed from `mu4e-tagging-tags'.  Maps to
+plist with tag properties.")
+
 (defun mu4e-tagging-info (tagname)
   "Retrieve the tag plist information for TAGNAME."
-  (gethash tagname mu4e-tagging-known-tags '()))
+  (gethash tagname mu4e-tagging--known-tags '()))
 
 (defun mu4e-tagging-category-tag-p (tagname)
   "Check if TAGNAME isa category tag."
@@ -850,7 +781,7 @@ ignored instead of being required."
   (interactive)
   (-let* (((tag-name . taginfo)
              (gethash (this-command-keys-vector)
-                      mu4e-tagging-reverse-key-table-tag))
+                      mu4e-tagging--key-action-table))
           (is-flag (plist-get taginfo :flag)))
     (if (not is-flag)
         ;; category?
@@ -876,7 +807,7 @@ be ignored instead of being blocked."
   (interactive)
   (-let* (((tag-name . taginfo)
              (gethash (this-command-keys-vector)
-                      mu4e-tagging-reverse-key-table-tag))
+                      mu4e-tagging--key-action-table))
           (is-flag (plist-get taginfo :flag)))
     (if (not is-flag)
         ;; category?
@@ -1119,7 +1050,99 @@ ignored (nil) by the filter."
               (setq cursor-type nil))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Configuration interface
+;;; Key handling
+
+;; We use two keymaps:
+;; - `mu4e-tagging-mode-map'
+;; - `mu4e-tagging--dyn-keymap' for keybindings generated from
+;;   user customisation in `mu4e-tagging-tags'.
+
+;; `mu4e-tagging-mode-map' overrides `mu4e-tagging--dyn-keymap'
+;; to ensure that users don't accidentally shoot themselves
+;; in the foot.  The latter  handles dynamically generated
+;; key bindings.
+
+;; `mu4e-tagging--dyn-keys' always maps to
+;; `mu4e-tagging--key-dispatch'.  The actual action to perform is
+;; stored in `mu4e-tagging--key-action-table'.
+(defvar-keymap mu4e-tagging--dyn-keymap
+  :doc "Auxiliary keymap for mu4e-tagging-minor mode:
+this map is automatically set up to manage tagging and query
+commands, but is overriden by `mu4e-tagging-mode-map'.")
+
+(defvar-keymap mu4e-tagging-mode-map
+  :doc "Primary keymap for mu4e-tagging-minor mode."
+  :parent mu4e-tagging--dyn-keymap)
+
+(defun mu4e-tagging-clear-tagging-dyn-keymap ()
+  "Remove all key bindings from `mu4e-tagging--dyn-keymap'."
+  (setcdr mu4e-tagging--dyn-keymap (cdr (make-sparse-keymap))))
+
+(setq mu4e-tagging--key-action-table
+      (make-hash-table :test 'equal))
+
+;; An extension of of `mu4e-tagging-tags` with defaults generated
+;; for missing fields.
+(setq mu4e-tagging-flags-var nil)
+
+(defun mu4e-tagging-categories-get ()
+  "Return alist of all category tags.
+
+The alist values are a plists that is guaranteed to contain
+:short and :key, and may contain the optional properties."
+  mu4e-tagging-categories-var)
+
+(defun mu4e-tagging-flags-get ()
+  "Retur an alist of all flag tags.
+
+The value is a plist that is guaranteed to contain :short and
+:key, and may contain the optional properties."
+  mu4e-tagging-flags-var)
+
+(defun mu4e-tagging--key-dispatch ()
+  )
+
+(defun mu4e-tagging--interceptor-tag ()
+  "Handle callbacks for tagging from keymap.
+
+Uses the most recent key sequence to identify the requested tag."
+  (interactive)
+  (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector)
+                                         mu4e-tagging--key-action-table))
+          (is-flag (plist-get taginfo :flag))
+          (msg (mu4e-message-at-point))
+          (tag-add (concat "+" tag-name))
+          (tag-remove (if (not is-flag)
+                          (mapconcat (lambda (n) (concat "-" n))
+                                     (remove tag-name
+                                             (mu4e-tagging-known-category-tags))
+                                     ",")
+                        ;; no tags to remove for tag-add
+                        ""))
+          (tags-update  (concat
+                         tag-add
+                         (if (eq "" tag-remove)
+                             ""
+                           ",")
+                         tag-remove)))
+    (mu4e-action-retag-message msg tags-update)))
+
+
+(defun mu4e-tagging--interceptor-untag ()
+  "Handle callbacks for untagging from keymap.
+
+Uses the most recent key sequence to identify the requested tag."
+  (interactive)
+  (-let* (((tag-name . taginfo)
+             (gethash (this-command-keys-vector)
+                      mu4e-tagging--key-action-table))
+          (msg (mu4e-message-at-point)))
+    (mu4e-action-retag-message msg (concat "-" tag-name))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Configuration interface
 
 (defcustom
   mu4e-tagging-untag-prefix
@@ -1157,7 +1180,7 @@ To use:
 3.  Customise `mu4e-tagging-tags' for the tags you want to manage
     in this mode."
   :lighter " tagging"
-  :keymap mu4e-tagging-keymap
+  :keymap mu4e-tagging-mode-map
 
   (progn
     (if mu4e-tagging
@@ -1175,7 +1198,7 @@ The function also adds hooks to activate `mu4e-tagging-mode' from
 `mu4e-headers-mode' and advice to automatically run
 `mu4e-tagging-mail-at-point-changed' after `mu4e-headers-prev'
 and `mu4e-headers-next'."
-  (let ((map mu4e-tagging-keymap))
+  (let ((map mu4e-tagging-mode-map))
     (define-key map (kbd "C-t") #'mu4e-tagging-disable)
     (define-key map (kbd "C-w C-w") #'mu4e-tagging-query-clear)
     (define-key map (kbd "C-w C-d") #'mu4e-tagging-query-require-uncategorized)
@@ -1218,7 +1241,7 @@ are flags, meaning that any number of them can be 'added' to
 any category."
   :type '(alist :tag "Blah"
                 :value-type
-                (plist :options ((:tag   symbol)
+                (plist :options ((:tag string)
                     (:short string)
                     (:key   key)
                     (:flag  boolean
