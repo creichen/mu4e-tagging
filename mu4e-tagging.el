@@ -1099,9 +1099,6 @@ The value is a plist that is guaranteed to contain :short and
 :key, and may contain the optional properties."
   mu4e-tagging-flags-var)
 
-(defun mu4e-tagging--key-dispatch ()
-  )
-
 (defun mu4e-tagging--interceptor-tag ()
   "Handle callbacks for tagging from keymap.
 
