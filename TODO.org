@@ -88,18 +88,32 @@ Key   Flag   Tag  [C-w]
 - State "DONE"       from "TODO"       [2023-10-16 Mon 10:00]
 *** DONE missing defun docs
 - State "DONE"       from "TODO"       [2023-10-16 Mon 10:30]
-** TODO code style cleanup
-*** TODO package-lint
-*** TODO (provide) at END
-*** TODO document deps
-*** TODO 80 columns
-*** TODO 71 columsn for doc-strings
-**** TODO mention EVERY arg, affected var/custom
-**** TODO Use `..' for refs
-**** TODO Args always CAPS
-**** TODO M-x checkdoc
-**** TODO key bindings refs: https://www.gnu.org/software/emacs/manual/html_node/elisp/Keys-in-Documentation.html
-*** TODO no standalone ")"
+** DONE code style cleanup
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:32]
+*** DONE (provide) at END
+- State "DONE"       from "TODO"       [2023-10-20 Fri 07:45]
+*** DONE provide 'mu4e-tagging
+- State "DONE"       from "TODO"       [2023-10-20 Fri 07:45]
+*** DONE package-lint
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:26]
+*** DONE document deps
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:26]
+*** DONE 80 columns
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:26]
+*** DONE 71 columsn for doc-strings
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:26]
+*** DONE mention EVERY arg, affected var/custom
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:26]
+*** DONE Use `..' for refs
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:26]
+*** DONE Args always CAPS
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:26]
+*** DONE M-x checkdoc
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:31]
+*** DONE no standalone ")"
+- State "DONE"       from "TODO"       [2023-10-20 Fri 12:31]
+** Refine coding style once again
+*** TODO key bindings refs: https://www.gnu.org/software/emacs/manual/html_node/elisp/Keys-in-Documentation.html
 *** TODO vertically align formals
 *** TODO avoid unnecessary (progn)
 *** TODO use (unless) instead of (when (not))
@@ -135,7 +149,6 @@ Key   Flag   Tag  [C-w]
 *** TODO utilise mail window (probably needs external support, e.g., rust's `maildir`)
 *** TODO highlight current tags in tag window
 ** TODO refactoring
-*** TODO provide 'mu4e-tagging
 *** TODO remove all the "minor-mode" stuff where not needed
 *** TODO merge the key-tables
 *** TODO organise function definitions better
