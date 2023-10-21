@@ -302,9 +302,9 @@ on demand."
     (mu4e-tagging-tag-info-buf)
     (mu4e-tagging-mail-at-point-changed)
     (add-hook 'mu4e-main-mode-hook
-	      #'mu4e-tagging-disable)
+              #'mu4e-tagging-disable)
     (add-hook 'mu4e-message-changed-hook
-	      #'mu4e-tagging-mail-at-point-changed)
+              #'mu4e-tagging-mail-at-point-changed)
     (add-hook 'mu4e-search-hook
               #'mu4e-tagging--query-submode-auto-disable)))
 
@@ -315,9 +315,9 @@ Also call `mu4e-tagging-query-submode-disable'."
   (remove-hook 'mu4e-search-hook
                #'mu4e-tagging--query-submode-auto-disable)
   (remove-hook 'mu4e-main-mode-hook
-	       #'mu4e-tagging-disable)
+               #'mu4e-tagging-disable)
   (remove-hook 'mu4e-message-changed-hook
-	       #'mu4e-tagging-mail-at-point-changed)
+               #'mu4e-tagging-mail-at-point-changed)
   (mu4e-tagging-query-submode-disable)
   (unwind-protect
       (when (eq mu4e-tagging-tag-info-window-buf
@@ -481,8 +481,8 @@ variable `mu4e-tagging-query-flags' but in the form of a sorted
 alist, with tag names as keys and '+ or '- as values."
   (let ((tags nil))
     (maphash (lambda (k v)
-	       (push (cons k v) tags))
-	     mu4e-tagging-query-flags)
+               (push (cons k v) tags))
+             mu4e-tagging-query-flags)
     (sort tags (lambda (a b) (string< (car a) (car b))))
     tags))
 
@@ -522,7 +522,7 @@ function return value, cf. `mu4e-tagging--query-rewrite-mu4e'."
                (t
                 nil)))
            (predicates-for-flags
-	    (mapcar (lambda (pair)
+            (mapcar (lambda (pair)
                         (let* ((tag (car pair))
                                (q (concat "x:" tag))
                                (dir (cdr pair)))
@@ -729,7 +729,7 @@ If TAGS is a string, the markers must be separated by
    (list
     (completing-read-multiple "Flags to require / disallow: "
                               (let ((flags
-				     (mu4e-tagging--flags-get-alist)))
+                                     (mu4e-tagging--flags-get-alist)))
                                 (append (mapcar (lambda (flag)
                                                   (concat "+"
                                                           (car flag)))
@@ -791,11 +791,11 @@ ignored instead of being required."
         (mu4e-tagging-query-submode-enable)
         (let* ((last-bind (gethash tag-name
                                    mu4e-tagging-query-flags)))
-	  (if (eq '- last-bind)
+          (if (eq '- last-bind)
               ;; From -flag to ignoring the flag
-	      (remhash tag-name mu4e-tagging-query-flags)
+              (remhash tag-name mu4e-tagging-query-flags)
             ;; otherwise +flag
-	    (puthash tag-name '+ mu4e-tagging-query-flags))))))
+            (puthash tag-name '+ mu4e-tagging-query-flags))))))
   (mu4e-tagging-query-rerun))
 
 (defun mu4e-tagging--interceptor-query-block ()
@@ -817,11 +817,11 @@ be ignored instead of being blocked."
         (mu4e-tagging-query-submode-enable)
         (let* ((last-bind (gethash tag-name
                                    mu4e-tagging-query-flags)))
-	  (if (eq '+ last-bind)
+          (if (eq '+ last-bind)
               ;; From +flag to ignoring the flag
-	      (remhash tag-name mu4e-tagging-query-flags)
+              (remhash tag-name mu4e-tagging-query-flags)
             ;; otherwise -flag
-	    (puthash tag-name '- mu4e-tagging-query-flags))))))
+            (puthash tag-name '- mu4e-tagging-query-flags))))))
   (mu4e-tagging-query-rerun))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1004,34 +1004,34 @@ ignored (nil) by the filter."
                           ""
                           (mu4e-tagging--propertized-info
                              (eq mu4e-tagging-query-category
-				 'uncategorized))
+                                 'uncategorized))
                           "(uncategorised)")
                          table-data-main))
                      (column-widths (mu4e-tagging--column-widths
-				     table-data 5))
+                                     table-data 5))
                      (query-keybind (mu4e-tagging--show-keybind
-				     mu4e-tagging-query-prefix)))
+                                     mu4e-tagging-query-prefix)))
                 (setq tabulated-list-format
-		      (vector
+                      (vector
                        `("Key"          ,(max 3 (aref column-widths
-						      0))
-			                t)
+                                                      0))
+                                        t)
                        `("Flag"         ,(max 4 (aref column-widths
-						      1))
-			                t)
+                                                      1))
+                                        t)
                        `("Tag"          ,(max 3 (aref column-widths 2))
-			                t
-			                :right-align t)
+                                        t
+                                        :right-align t)
                        `(,query-keybind ,(max 8 (length query-keybind)
-					      (aref column-widths 3))
-					t
-					:right-align t)
+                                              (aref column-widths 3))
+                                        t
+                                        :right-align t)
                        `(""             1
-			                t)))
+                                        t)))
                 (tabulated-list-init-header)
                 (setq tabulated-list-entries
                       ;; expects list of:
-		      ;;   (nil [key  flag  tag  keybind  info])
+                      ;;   (nil [key  flag  tag  keybind  info])
                       (mapcar (lambda (row)
                                 (list nil (vconcat row)))
                               table-data))
@@ -1204,11 +1204,11 @@ and `mu4e-headers-next'."
             (lambda ()
               (local-set-key (kbd "C-t") 'mu4e-tagging)))
   (advice-add 'mu4e-headers-next
-	      :after
-	      #'mu4e-tagging-mail-at-point-changed)
+              :after
+              #'mu4e-tagging-mail-at-point-changed)
   (advice-add 'mu4e-headers-prev
-	      :after
-	      #'mu4e-tagging-mail-at-point-changed))
+              :after
+              #'mu4e-tagging-mail-at-point-changed))
 
 (defun mu4e-tagging-update-customize-reset (symbol value)
   "Initial setup for the default values of `mu4e-tagging-tags'.

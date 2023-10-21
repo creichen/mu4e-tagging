@@ -139,21 +139,21 @@
   "Sets a particualr tags configuration that we use for testing here."
   (customize-set-variable 'mu4e-tagging-tags
                           '(("a"
-			     :key "a"
-			     :short "A"
-			     :flag t
-			     :foreground "yellow"
-			     :background "black")
+                             :key "a"
+                             :short "A"
+                             :flag t
+                             :foreground "yellow"
+                             :background "black")
                             ("bassoon"
-			     :key "b"
-			     :short "bas")
+                             :key "b"
+                             :short "bas")
                             ("ba")
                             ("chips")
                             ("particularly-lengthy"
-			     :short "M"
-			     :flag t
-			     :box t
-			     :weight "ultra-thin"))))
+                             :short "M"
+                             :flag t
+                             :box t
+                             :weight "ultra-thin"))))
 
 
 (ert-deftest test-customise--category-tags ()
@@ -169,7 +169,7 @@
    (setup-test-tags)
    (should (equal '("a" "ba" "bassoon" "chips" "particularly-lengthy")
                   (sorted-strings (hash-table-keys
-				   mu4e-tagging--known-tags))))))
+                                   mu4e-tagging--known-tags))))))
 
 (ert-deftest test-customise--dyn-keymap ()
   "Customising the tags generates the correct set of category tags."
@@ -215,7 +215,7 @@
    (let ((old mu4e-query-rewrite-function))
      (mu4e-tagging-query-submode-enable)
      (should (equal #'mu4e-tagging--query-rewrite-mu4e
-		    mu4e-query-rewrite-function))
+                    mu4e-query-rewrite-function))
      (mu4e-tagging-query-submode-disable)
      (should (equal old mu4e-query-rewrite-function)))))
 
@@ -234,7 +234,7 @@
      (mu4e-tagging-query-submode-enable)
      (setq mu4e-tagging-query-category "ba")
      (should (equal "(foo) AND x:ba"
-		    (mu4e-tagging--query-rewrite "foo")))
+                    (mu4e-tagging--query-rewrite "foo")))
      (mu4e-tagging-query-submode-disable))))
 
 (ert-deftest test-query--filter-uncategorized ()
@@ -257,7 +257,7 @@
      (setq mu4e-tagging-query-category nil)
      (mu4e-tagging-query-flags '("+a"))
      (should (equal "(foo) AND x:a"
-		    (mu4e-tagging--query-rewrite "foo")))
+                    (mu4e-tagging--query-rewrite "foo")))
      (mu4e-tagging-query-submode-disable))))
 
 (ert-deftest test-query--filter-negative-flag-handler ()
@@ -267,7 +267,7 @@
      (mu4e-tagging-query-submode-enable)
      (mu4e-tagging-query-flags "-a")
      (should (equal "(foo) AND (NOT x:a)"
-		    (mu4e-tagging--query-rewrite "foo")))
+                    (mu4e-tagging--query-rewrite "foo")))
      (mu4e-tagging-query-submode-disable))))
 
 (ert-deftest test-query--filter-blended-flags-handler ()
@@ -276,10 +276,10 @@
    (let ((old mu4e-query-rewrite-function))
      (mu4e-tagging-query-submode-enable)
      (mu4e-tagging-query-flags '("-particularly-lengthy"
-				 "+a"))
+                                 "+a"))
      (should (equal
-	      "(foo) AND x:a AND (NOT x:particularly-lengthy)"
-	      (mu4e-tagging--query-rewrite "foo")))
+              "(foo) AND x:a AND (NOT x:particularly-lengthy)"
+              (mu4e-tagging--query-rewrite "foo")))
      (mu4e-tagging-query-submode-disable))))
 
 (ert-deftest test-query--filter-flags-and-category ()
@@ -289,10 +289,10 @@
      (mu4e-tagging-query-submode-enable)
      (setq mu4e-tagging-query-category "ba")
      (mu4e-tagging-query-flags '("-particularly-lengthy"
-				 "+a"))
+                                 "+a"))
      (should (equal
-	      "(foo) AND x:ba AND x:a AND (NOT x:particularly-lengthy)"
-	      (mu4e-tagging--query-rewrite "foo")))
+              "(foo) AND x:ba AND x:a AND (NOT x:particularly-lengthy)"
+              (mu4e-tagging--query-rewrite "foo")))
      (mu4e-tagging-query-submode-disable))))
 
 (ert-deftest test-query--filter-flags-and-uncategorized ()
@@ -302,11 +302,11 @@
      (mu4e-tagging-query-submode-enable)
      (setq mu4e-tagging-query-category 'uncategorized)
      (mu4e-tagging-query-flags '("+particularly-lengthy"
-				 "-a"))
+                                 "-a"))
      (should
       (equal
          "(foo) AND (NOT x:bassoon) AND (NOT x:ba) AND (NOT x:chips) AND (NOT x:a) AND x:particularly-lengthy"
-	 (mu4e-tagging--query-rewrite "foo")))
+         (mu4e-tagging--query-rewrite "foo")))
      (mu4e-tagging-query-submode-disable))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -409,19 +409,19 @@
   "Key binding conversion around `key-valid-p'-style strings."
   (should-preserve-all-state
    (dolist (equivalent-keyspecs '(([?a] "a" ?a)
-		   ([?b] "b" ?b)
-		   ([25] "C-y" 25)
-		   ([26] "C-z" 26)
-		   ([?A ?b] "A b")
-		   ([?C ?d] "C d")))
+                   ([?b] "b" ?b)
+                   ([25] "C-y" 25)
+                   ([26] "C-z" 26)
+                   ([?A ?b] "A b")
+                   ([?C ?d] "C d")))
      (-let (((key-vec key-string &rest _) equivalent-keyspecs))
        ;; sanity check
        (should (key-valid-p key-string))
        (dolist (key-encoding equivalent-keyspecs)
-	 (should (equal key-string
-			(mu4e-tagging-keystring key-encoding)))
-	 (should (equal key-vec
-			(mu4e-tagging-keyvec key-encoding))))))))
+         (should (equal key-string
+                        (mu4e-tagging-keystring key-encoding)))
+         (should (equal key-vec
+                        (mu4e-tagging-keyvec key-encoding))))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -453,7 +453,7 @@
      (mock (mu4e-tagging-query-submode-enable))
      (mu4e-tagging--interceptor-query-require)
      (should (equal '(("particularly-lengthy" . +))
-		    (mu4e-tagging--query-flags-alist))))
+                    (mu4e-tagging--query-flags-alist))))
    ;; idempotent
    (with-mock
      ;; C-w = 23
@@ -462,7 +462,7 @@
      (mock (mu4e-tagging-query-submode-enable))
      (mu4e-tagging--interceptor-query-require)
      (should (equal '(("particularly-lengthy" . +))
-		    (mu4e-tagging--query-flags-alist))))
+                    (mu4e-tagging--query-flags-alist))))
    (with-mock
      ;; C-w = 23
      (stub this-command-keys-vector => [23 ?a])
@@ -470,10 +470,10 @@
      (mock (mu4e-tagging-query-submode-enable))
      (mu4e-tagging--interceptor-query-require)
      (should (equal '(("a" . +)
-		      ("particularly-lengthy" . +))
-		    (mu4e-tagging--query-flags-alist))))
+                      ("particularly-lengthy" . +))
+                    (mu4e-tagging--query-flags-alist))))
    (mu4e-tagging-query-flags '("-a"
-			       "-particularly-lengthy"))
+                               "-particularly-lengthy"))
    (with-mock
      ;; C-w = 23
      (stub this-command-keys-vector => [23 ?p])
@@ -481,7 +481,7 @@
      (mock (mu4e-tagging-query-submode-enable))
      (mu4e-tagging--interceptor-query-require)
      (should (equal '(("a" . -))
-		    (mu4e-tagging--query-flags-alist))))
+                    (mu4e-tagging--query-flags-alist))))
    (with-mock
      ;; C-w = 23
      (stub this-command-keys-vector => [23 ?a])
@@ -489,6 +489,6 @@
      (mock (mu4e-tagging-query-submode-enable))
      (mu4e-tagging--interceptor-query-require)
      (should (equal nil
-		    (mu4e-tagging--query-flags-alist))))))
+                    (mu4e-tagging--query-flags-alist))))))
 
 ;;; mu4e-tagging-test.el ends here
