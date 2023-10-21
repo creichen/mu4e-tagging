@@ -491,4 +491,118 @@
      (should (equal nil
                     (mu4e-tagging--query-flags-alist))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Keymap handling
+
+(ert-deftest test-keymap--flag-tag ()
+  "Key sequence for tagging flags"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-message-at-point =>  'my-test-message)
+      (mock (mu4e-action-retag-message 'my-test-message "+a"))
+      (execute-kbd-macro "a")
+      ))))
+
+(ert-deftest test-keymap--flag-untag ()
+  "Key sequence for untagging flags"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-message-at-point =>  'my-test-message)
+      (mock (mu4e-action-retag-message 'my-test-message "-a"))
+      (execute-kbd-macro "-a")
+      ))))
+
+(ert-deftest test-keymap--category-tag ()
+  "Key sequence for setting categories"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-message-at-point =>  'my-test-message)
+      (mock (mu4e-action-retag-message 'my-test-message "+bassoon,-ba,-chips"))
+      (execute-kbd-macro "b")
+      ))))
+
+(ert-deftest test-keymap--category-untag ()
+  "Key sequence for removing categories"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-message-at-point =>  'my-test-message)
+      (mock (mu4e-action-retag-message 'my-test-message "-bassoon"))
+      (execute-kbd-macro "-b")
+      ))))
+
+(ert-deftest test-keymap--flag-require-query ()
+  "Key sequence for querying for presence of a flag"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wa")
+      (should (equal '(("a" . +))
+                     (mu4e-tagging--query-flags-alist)))
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wp")
+      (should (equal '(("a" . +)
+                       ("particularly-lengthy" . +))
+                     (mu4e-tagging--query-flags-alist)))))
+   ;; Clean up
+   (clrhash mu4e-tagging-query-flags)))
+
+(ert-deftest test-keymap--flag-block-query ()
+  "Key sequence for querying for absence of a flag"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (execute-kbd-macro "\C-w-a")
+     (should (equal '(("a" . -))
+                    (mu4e-tagging--query-flags-alist)))
+     (execute-kbd-macro "\C-wp")
+     (should (equal '(("a" . -)
+                      ("particularly-lengthy" . +))
+                    (mu4e-tagging--query-flags-alist))))
+   ;; Clean up
+   (clrhash mu4e-tagging-query-flags)))
+
+(ert-deftest test-keymap--flag-block-permit-require-query ()
+  "Key sequence for first blocking, then iterating to requiring a flag"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (execute-kbd-macro "\C-w-a")
+     (should (equal '(("a" . -))
+                    (mu4e-tagging--query-flags-alist)))
+     (execute-kbd-macro "\C-wa")
+     (should (equal nil
+                    (mu4e-tagging--query-flags-alist)))
+     (execute-kbd-macro "\C-wa")
+     (should (equal '(("a" . +))
+                    (mu4e-tagging--query-flags-alist))))
+   ;; Clean up
+   (clrhash mu4e-tagging-query-flags)))
+
+(ert-deftest test-keymap--flag-require-permit-block-query ()
+  "Key sequence for first requiring a flag, then iterating to blocking a flag"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (execute-kbd-macro "\C-wa")
+     (should (equal '(("a" . +))
+                    (mu4e-tagging--query-flags-alist)))
+     (execute-kbd-macro "\C-w-a")
+     (should (equal nil
+                    (mu4e-tagging--query-flags-alist)))
+     (execute-kbd-macro "\C-w-a")
+     (should (equal '(("a" . -))
+                    (mu4e-tagging--query-flags-alist))))
+   ;; Clean up
+   (clrhash mu4e-tagging-query-flags)))
+
 ;;; mu4e-tagging-test.el ends here
