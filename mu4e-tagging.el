@@ -376,6 +376,13 @@ plist with tag properties.")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Pretty-printing tags
 
+(setq mu4e-tagging--short-tags
+               '(:short-tags . (:name "Short Tags"
+                                      :shortname "mTags" ; "milli-Tags"
+                                      :function
+                                        mu4e-tagging-render-tags)))
+
+
 (defun mu4e-tagging-propertized-name (tag-name &rest short)
   "Propertized tag string for TAG-NAME.
 
@@ -397,12 +404,6 @@ If SHORT is non-NIL, uses :short instead of :tag as tag text."
                                     (t (list :box box)))
                               (if weight (list :weigth weight)))))
     (propertize name 'face (list face))))
-
-(setq mu4e-tagging--short-tags
-               '(:short-tags . (:name "Short Tags"
-                                      :shortname "mTags" ; "milli-Tags"
-                                      :function
-                                        mu4e-tagging-render-tags)))
 
 (defun mu4e-tagging--on-load ()
   "Add :short-tags as mu4e header field type.

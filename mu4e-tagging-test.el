@@ -33,6 +33,10 @@
 (load-file "mu4e-tagging.el")
 (require 'el-mock)
 
+;; Set up default key bindings
+
+(mu4e-tagging-setup-default-bindings)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test harness
 
@@ -535,8 +539,7 @@
      (with-mock
       (stub mu4e-message-at-point =>  'my-test-message)
       (mock (mu4e-action-retag-message 'my-test-message "-bassoon"))
-      (execute-kbd-macro "-b")
-      ))))
+      (execute-kbd-macro "-b")))))
 
 (ert-deftest test-keymap--flag-require-query ()
   "Key sequence for querying for presence of a flag"
@@ -544,10 +547,13 @@
    ;; Override all keybindings, for testing
    (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
      (with-mock
+      (stub mu4e-tagging-query-submode-enable)
       (stub mu4e-tagging-query-rerun)
-      (execute-kbd-macro "\C-wa")
-      (should (equal '(("a" . +))
-                     (mu4e-tagging--query-flags-alist)))
+      (execute-kbd-macro "\C-wa"))
+     (should (equal '(("a" . +))
+                    (mu4e-tagging--query-flags-alist)))
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
       (stub mu4e-tagging-query-rerun)
       (execute-kbd-macro "\C-wp")
       (should (equal '(("a" . +)
@@ -561,10 +567,16 @@
   (should-preserve-all-state
    ;; Override all keybindings, for testing
    (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
-     (execute-kbd-macro "\C-w-a")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-w-a"))
      (should (equal '(("a" . -))
                     (mu4e-tagging--query-flags-alist)))
-     (execute-kbd-macro "\C-wp")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wp"))
      (should (equal '(("a" . -)
                       ("particularly-lengthy" . +))
                     (mu4e-tagging--query-flags-alist))))
@@ -576,13 +588,22 @@
   (should-preserve-all-state
    ;; Override all keybindings, for testing
    (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
-     (execute-kbd-macro "\C-w-a")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-w-a"))
      (should (equal '(("a" . -))
                     (mu4e-tagging--query-flags-alist)))
-     (execute-kbd-macro "\C-wa")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wa"))
      (should (equal nil
                     (mu4e-tagging--query-flags-alist)))
-     (execute-kbd-macro "\C-wa")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wa"))
      (should (equal '(("a" . +))
                     (mu4e-tagging--query-flags-alist))))
    ;; Clean up
@@ -593,16 +614,89 @@
   (should-preserve-all-state
    ;; Override all keybindings, for testing
    (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
-     (execute-kbd-macro "\C-wa")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wa"))
      (should (equal '(("a" . +))
                     (mu4e-tagging--query-flags-alist)))
-     (execute-kbd-macro "\C-w-a")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-w-a"))
      (should (equal nil
                     (mu4e-tagging--query-flags-alist)))
-     (execute-kbd-macro "\C-w-a")
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-w-a"))
      (should (equal '(("a" . -))
                     (mu4e-tagging--query-flags-alist))))
    ;; Clean up
    (clrhash mu4e-tagging-query-flags)))
+
+(ert-deftest test-keymap--category-require-unrequire ()
+  "First require a category, then remove that requirement again"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wb"))
+     (should (equal nil
+                    (mu4e-tagging--query-flags-alist)))
+     (should (equal "bassoon"
+		    mu4e-tagging-query-category))
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-w-b"))
+     (should (equal nil
+                    (mu4e-tagging--query-flags-alist)))
+     (should (equal nil
+		    mu4e-tagging-query-category)))
+   ;; Clean up
+   (setq mu4e-tagging-query-category nil)))
+
+(ert-deftest test-keymap--category-switch ()
+  "First require a category, then switch categories"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wb"))
+     (should (equal nil
+                    (mu4e-tagging--query-flags-alist)))
+     (should (equal "bassoon"
+		    mu4e-tagging-query-category))
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-wc"))
+     (should (equal nil
+                    (mu4e-tagging--query-flags-alist)))
+     (should (equal "chips"
+		    mu4e-tagging-query-category)))
+   ;; Clean up
+   (setq mu4e-tagging-query-category nil)))
+
+(ert-deftest test-keymap--uncategorised ()
+  "Require uncategorised mails only"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-tagging-query-submode-enable)
+      (stub mu4e-tagging-query-rerun)
+      (execute-kbd-macro "\C-w\C-d"))
+     (should (equal nil
+                    (mu4e-tagging--query-flags-alist)))
+     (should (equal 'uncategorized
+		    mu4e-tagging-query-category)))
+   ;; Clean up
+   (setq mu4e-tagging-query-category nil)))
 
 ;;; mu4e-tagging-test.el ends here
