@@ -429,7 +429,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Filter updates
+;; Key map -> filter updates
 
 (ert-deftest test-filter-update--require-category-handler ()
   "The interceptor handler for require-filters works for categories."
@@ -439,13 +439,13 @@
      (stub this-command-keys-vector => [23 ?b])
      (mock (mu4e-tagging-query-category "bassoon"))
      (stub mu4e-tagging-query-rerun)
-     (mu4e-tagging--interceptor-query-require))
+     (mu4e-tagging--key-handler nil))
    (with-mock
      ;; C-w = 23
      (stub this-command-keys-vector => [23 ?c])
      (mock (mu4e-tagging-query-category "chips"))
      (stub mu4e-tagging-query-rerun)
-     (mu4e-tagging--interceptor-query-require))))
+     (mu4e-tagging--key-handler nil))))
 
 (ert-deftest test-filter-update--require-flag-handler ()
   "The interceptor handler for require-filters works for flags."
@@ -455,7 +455,7 @@
      (stub this-command-keys-vector => [23 ?p])
      (stub mu4e-tagging-query-rerun)
      (mock (mu4e-tagging-query-submode-enable))
-     (mu4e-tagging--interceptor-query-require)
+     (mu4e-tagging--key-handler nil)
      (should (equal '(("particularly-lengthy" . +))
                     (mu4e-tagging--query-flags-alist))))
    ;; idempotent
@@ -464,7 +464,7 @@
      (stub this-command-keys-vector => [23 ?p])
      (stub mu4e-tagging-query-rerun)
      (mock (mu4e-tagging-query-submode-enable))
-     (mu4e-tagging--interceptor-query-require)
+     (mu4e-tagging--key-handler nil)
      (should (equal '(("particularly-lengthy" . +))
                     (mu4e-tagging--query-flags-alist))))
    (with-mock
@@ -472,7 +472,7 @@
      (stub this-command-keys-vector => [23 ?a])
      (stub mu4e-tagging-query-rerun)
      (mock (mu4e-tagging-query-submode-enable))
-     (mu4e-tagging--interceptor-query-require)
+     (mu4e-tagging--key-handler nil)
      (should (equal '(("a" . +)
                       ("particularly-lengthy" . +))
                     (mu4e-tagging--query-flags-alist))))
@@ -483,7 +483,7 @@
      (stub this-command-keys-vector => [23 ?p])
      (stub mu4e-tagging-query-rerun)
      (mock (mu4e-tagging-query-submode-enable))
-     (mu4e-tagging--interceptor-query-require)
+     (mu4e-tagging--key-handler nil)
      (should (equal '(("a" . -))
                     (mu4e-tagging--query-flags-alist))))
    (with-mock
@@ -491,7 +491,7 @@
      (stub this-command-keys-vector => [23 ?a])
      (stub mu4e-tagging-query-rerun)
      (mock (mu4e-tagging-query-submode-enable))
-     (mu4e-tagging--interceptor-query-require)
+     (mu4e-tagging--key-handler nil)
      (should (equal nil
                     (mu4e-tagging--query-flags-alist))))))
 

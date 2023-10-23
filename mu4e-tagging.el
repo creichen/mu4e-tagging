@@ -158,34 +158,22 @@ Returns TAG-PBODY with :key possibly updated.  Throws
                                      :key
                                      (mu4e-tagging-keystring key-tag)))
            (taginfo (cons tag-name tag-pbody-new)))
-      ;; Bind the key to call the generic interceptor functions
-      (define-key mu4e-tagging--dyn-keymap
-                  key-tag
-                  #'mu4e-tagging--interceptor-tag)
-      (define-key mu4e-tagging--dyn-keymap
-                  key-untag #'mu4e-tagging--interceptor-untag)
-      (define-key mu4e-tagging--dyn-keymap
-                  key-query-require
-                  #'mu4e-tagging--interceptor-query-require)
-      (define-key mu4e-tagging--dyn-keymap
-                  key-query-block
-                  #'mu4e-tagging--interceptor-query-block)
-
-      ;; Set up reverse lookup keymaps so the interceptors can figure
-      ;; out why they were called
-      (puthash key-tag
-               taginfo
-               mu4e-tagging--key-action-table)
-      (puthash key-untag
-               taginfo
-               mu4e-tagging--key-action-table)
-      (puthash key-query-require
-               taginfo
-               mu4e-tagging--key-action-table)
-      (puthash key-query-block
-               taginfo
-               mu4e-tagging--key-action-table)
-      ;; Return updated tag-body plist
+      ;; Bind all key for the generic keymap callback
+      (dolist (key-action
+	        (list
+		 (list key-tag           mu4e-tagging--action-tag)
+		 (list key-untag         mu4e-tagging--action-untag)
+		 (list key-query-require mu4e-tagging--action-query-require)
+		 (list key-query-block   mu4e-tagging--action-query-block)))
+	(-let (((keys action) key-action))
+	  ;; Key handler
+	  (define-key mu4e-tagging--dyn-keymap
+		      keys
+		      #'mu4e-tagging--key-handler)
+	  ;; Binding-specific parameters for key handler
+	  (puthash keys
+		   (cons tag-name action)
+		   mu4e-tagging--key-action-table)))
       tag-pbody-new)))
 
 (defun mu4e-tagging-alloc-default-keys ()
@@ -335,7 +323,7 @@ Also call `mu4e-tagging-query-submode-disable'."
     (mu4e-tagging-disable-handler)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Querying and categorising tags
+;;; Tag storage and classification
 
 (defvar mu4e-tagging--known-tags
   (make-hash-table :test 'equal)
@@ -795,58 +783,6 @@ Currently hardwired to run `mu4e-search-retun`."
   (mu4e-tagging-query-category "-")
   (mu4e-tagging-query-rerun))
 
-(defun mu4e-tagging--interceptor-query-require ()
-  "Set category filter to show category or to require flag.
-
-Decodes the category or flag by looking at the most recent
-command.  For flags, if the flag is currently blocked, it will be
-ignored instead of being required."
-  (interactive)
-  (-let* (((tag-name . taginfo)
-             (gethash (this-command-keys-vector)
-                      mu4e-tagging--key-action-table))
-          (is-flag (plist-get taginfo :flag)))
-    (if (not is-flag)
-        ;; category?
-        (mu4e-tagging-query-category tag-name)
-      ;; flag?
-      (progn
-        (mu4e-tagging-query-submode-enable)
-        (let* ((last-bind (gethash tag-name
-                                   mu4e-tagging-query-flags)))
-          (if (eq '- last-bind)
-              ;; From -flag to ignoring the flag
-              (remhash tag-name mu4e-tagging-query-flags)
-            ;; otherwise +flag
-            (puthash tag-name '+ mu4e-tagging-query-flags))))))
-  (mu4e-tagging-query-rerun))
-
-(defun mu4e-tagging--interceptor-query-block ()
-  "Set category filter to stop filtering categories, or block flag.
-
-Decodes the category or flag by looking at the most recent
-command.  For flags, if the flag is currently required, it will
-be ignored instead of being blocked."
-  (interactive)
-  (-let* (((tag-name . taginfo)
-             (gethash (this-command-keys-vector)
-                      mu4e-tagging--key-action-table))
-          (is-flag (plist-get taginfo :flag)))
-    (if (not is-flag)
-        ;; category?
-        (mu4e-tagging-query-category "")
-      ;; flag?
-      (progn
-        (mu4e-tagging-query-submode-enable)
-        (let* ((last-bind (gethash tag-name
-                                   mu4e-tagging-query-flags)))
-          (if (eq '+ last-bind)
-              ;; From +flag to ignoring the flag
-              (remhash tag-name mu4e-tagging-query-flags)
-            ;; otherwise -flag
-            (puthash tag-name '- mu4e-tagging-query-flags))))))
-  (mu4e-tagging-query-rerun))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; mail-info buffer
 
@@ -1114,20 +1050,82 @@ commands, but is overriden by `mu4e-tagging-mode-map'.")
 (setq mu4e-tagging--key-action-table
       (make-hash-table :test 'equal))
 
-(defun mu4e-tagging--interceptor-tag ()
+;; How to handle a key sequence for tagging, possibly in the presence
+;; of prefix commands.  The plist describes how to handle:
+;; - :direct:  normal key
+;; - :prefix:  M-u prefix
+;; - :negated: C-- prefix
+;; Each of the functions listed there takes as arguments
+;; (tag-name tag-plist is-flag)
+(setq mu4e-tagging--action-tag
+      '(:direct  mu4e-tagging--tag
+	:prefix  mu4e-tagging--tag
+	:negated mu4e-tagging--untag))
+
+;; Handles a key sequence for an untagging command.  See
+;; `mu4e-tagging--action-tag'.
+(setq mu4e-tagging--action-untag
+      '(:direct  mu4e-tagging--untag
+	:prefix  mu4e-tagging--untag
+	:negated mu4e-tagging--tag))
+
+;; Handles a key sequence for querying.  See
+;; `mu4e-tagging--action-tag'.
+(setq mu4e-tagging--action-query-require
+      '(:direct  mu4e-tagging--query-require
+	:prefix  mu4e-tagging--query-unrequire
+	:negated mu4e-tagging--query-block))
+
+;; (Temporary) Handles a key sequence for querying.  See
+;; `mu4e-tagging--action-tag'.
+(setq mu4e-tagging--action-query-block
+      '(:direct  mu4e-tagging--query-block
+	:prefix  mu4e-tagging--query-unrequire
+	:negated mu4e-tagging--query-require))
+
+
+(defun mu4e-tagging--key-handler (arg)
   "Handle callbacks for tagging from keymap.
 
-Uses the most recent key sequence to identify the requested tag."
-  (interactive)
-  (-let* (((tag-name . taginfo) (gethash (this-command-keys-vector)
-                                         mu4e-tagging--key-action-table))
-          (is-flag (plist-get taginfo :flag))
-          (msg (mu4e-message-at-point))
+Uses the most recent key sequence to identify the requested tag,
+and handles C-- and M-u prefix commands."
+  (interactive "P")
+  (-let* (((tag-name . vtable)
+	     (gethash (this-command-keys-vector)
+                      mu4e-tagging--key-action-table))
+	  (tag-info (mu4e-tagging-info tag-name))
+	  (is-flag (mu4e-tagging-flag-tag-p tag-name))
+	  (dispatch-prop (cond
+			  ;; no prefix / prefix 1
+			  ((or (null arg)
+			       (eq arg 1))
+			   :direct)
+			  ;; negative prefix
+			  ((or (eq arg '-)
+			       (eq arg -1))
+			   :negated)
+			  ;; other prefix
+			  (t
+			   :prefix)))
+	  (dispatch-target (plist-get vtable dispatch-prop)))
+    (apply dispatch-target (list tag-name tag-info is-flag))))
+
+
+(defun mu4e-tagging--tag (tag-name tag-plist is-flag)
+  "Add tag to message at point.
+
+Callback function for `mu4e-tagging--key-handler'.
+
+TAG-NAME is the tag to set.
+TAG-PLIST is the property list describing the tag.
+IS-FLAG stores whether the tag is a flag."
+  (-let* ((msg (mu4e-message-at-point))
           (tag-add (concat "+" tag-name))
           (tag-remove (if (not is-flag)
                           (mapconcat (lambda (n) (concat "-" n))
-                                     (remove tag-name
-                                             (mu4e-tagging--category-tags))
+                                     (remove
+				        tag-name
+                                        (mu4e-tagging--category-tags))
                                      ",")
                         ;; no tags to remove for tag-add
                         ""))
@@ -1140,16 +1138,77 @@ Uses the most recent key sequence to identify the requested tag."
     (mu4e-action-retag-message msg tags-update)))
 
 
-(defun mu4e-tagging--interceptor-untag ()
-  "Handle callbacks for untagging from keymap.
+(defun mu4e-tagging--untag (tag-name tag-plist is-flag)
+  "Remove tag from message at point.
 
-Uses the most recent key sequence to identify the requested tag."
-  (interactive)
-  (-let* (((tag-name . taginfo)
-             (gethash (this-command-keys-vector)
-                      mu4e-tagging--key-action-table))
-          (msg (mu4e-message-at-point)))
+Callback function for `mu4e-tagging--key-handler'.
+
+TAG-NAME is the tag to set.
+TAG-PLIST is the property list describing the tag.
+IS-FLAG stores whether the tag is a flag."
+  (let ((msg (mu4e-message-at-point)))
     (mu4e-action-retag-message msg (concat "-" tag-name))))
+
+
+(defun mu4e-tagging--query-require (tag-name tag-plist is-flag)
+  "Querying: require tag.
+
+Callback for `mu4e-tagging--key-handler'.
+
+TAG-NAME is the tag to set.
+TAG-PLIST is the property list describing the tag.
+IS-FLAG stores whether the tag is a flag."
+  (if (not is-flag)
+      ;; category?
+      (mu4e-tagging-query-category tag-name)
+    ;; flag?
+    (progn
+      (mu4e-tagging-query-submode-enable)
+      (let* ((last-bind (gethash tag-name
+                                 mu4e-tagging-query-flags)))
+        (if (eq '- last-bind)
+            ;; From -flag to ignoring the flag
+            (remhash tag-name mu4e-tagging-query-flags)
+          ;; otherwise +flag
+          (puthash tag-name '+ mu4e-tagging-query-flags)))))
+  (mu4e-tagging-query-rerun))
+
+
+(defun mu4e-tagging--query-unrequire (tag-name tag-plist is-flag)
+  "Querying: don't check for whether tag is/is not present.
+
+Callback for `mu4e-tagging--key-handler'.
+
+TAG-NAME is the tag to set.
+TAG-PLIST is the property list describing the tag.
+IS-FLAG stores whether the tag is a flag."
+  (if (equals tag-name mu4e-tagging-query-category)
+      (setq mu4e-tagging-query-category nil))
+  (remhash tag-name mu4e-tagging-query-flags))
+
+
+(defun mu4e-tagging--query-block (tag-name tag-plist is-flag)
+  "Querying: filter out tag.
+
+Callback for `mu4e-tagging--key-handler'.
+
+TAG-NAME is the tag to set.
+TAG-PLIST is the property list describing the tag.
+IS-FLAG stores whether the tag is a flag."
+  (if (not is-flag)
+      ;; category?
+      (mu4e-tagging-query-category "")
+    ;; flag?
+    (progn
+      (mu4e-tagging-query-submode-enable)
+      (let* ((last-bind (gethash tag-name
+                                 mu4e-tagging-query-flags)))
+        (if (eq '+ last-bind)
+            ;; From +flag to ignoring the flag
+            (remhash tag-name mu4e-tagging-query-flags)
+          ;; otherwise -flag
+          (puthash tag-name '- mu4e-tagging-query-flags)))))
+  (mu4e-tagging-query-rerun))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Configuration interface
