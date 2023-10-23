@@ -6,7 +6,7 @@
 ;; Maintainer: Christoph Reichenbach <creichen@creichen.net>
 ;; Created: 12 Oct 2023
 
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "25.1") (dash "2.0") (compat "29.1"))
 
 ;; Keywords: mail
@@ -107,13 +107,13 @@ KEY may be a string, character, or key vector."
 (defun mu4e-tagging-alloc-keys (tag-name tag-pbody)
   "Allocate and bind keys for TAG-NAME, ensuring uniqueness.
 
-Returns TAG-PBODY with :key possibly updated.  Throws
+Returns TAG-PBODY with :+key possibly updated.  Throws
 'keybind-impossible if
-1. :key in tag-pbody is already bound,
-2. :key is not in tag-pbody and the function couldn't guess an
+1. :+key in tag-pbody is already bound,
+2. :+key is not in tag-pbody and the function couldn't guess an
     unused binding, or
-3. :key is somehow invalid."
-  (let* ((requested-key (plist-get tag-pbody :key))
+3. :+key is somehow invalid."
+  (let* ((requested-key (plist-get tag-pbody :+key))
          (str-key (cond
                    ((null requested-key)
                     nil)
@@ -135,6 +135,9 @@ Returns TAG-PBODY with :key possibly updated.  Throws
                                    mu4e-tagging--dyn-keymap
                                    (kbd (string c))))
                         return (key-description (vector c)))))
+         (maybe-neg-key (plist-get tag-pbody :-key))
+         (neg-key (if (key-valid-p maybe-neg-key)
+		      maybe-neg-key))
          (prefix-key-vec (mu4e-tagging-keyvec
                             mu4e-tagging-untag-prefix))
          (query-key-vec (mu4e-tagging-keyvec
@@ -144,36 +147,50 @@ Returns TAG-PBODY with :key possibly updated.  Throws
            (equal (string-to-char key)
                   mu4e-tagging-untag-prefix)
            (keymap-lookup mu4e-tagging-mode-map (kbd key)))
-      (throw 'keybind-impossible (list tag-name :key requested-key)))
+      (throw 'keybind-impossible (list tag-name :+key requested-key)))
     ;; Otherwise the keybind is available
     (let* ((key-tag (mu4e-tagging-keyvec key))
+	   (neg-key-tag (if neg-key
+			    (mu4e-tagging-keyvec neg-key)))
            (key-untag (vconcat prefix-key-vec key-tag))
            ;; keys for querying
            (key-query-require (vconcat query-key-vec key-tag))
            (key-query-block (vconcat query-key-vec
                                      prefix-key-vec
                                      key-tag))
-           ;; update :key accordingly
+           ;; update :+key accordingly
            (tag-pbody-new (plist-put tag-pbody
-                                     :key
+                                     :+key
                                      (mu4e-tagging-keystring key-tag)))
+           (neg-key-bindings
+             (if neg-key-tag
+                 (list (list neg-key-tag
+			     mu4e-tagging--action-untag)
+		       (list (vconcat query-key-vec neg-key-tag)
+			     mu4e-tagging--action-query-block))))
            (taginfo (cons tag-name tag-pbody-new)))
       ;; Bind all key for the generic keymap callback
       (dolist (key-action
-	        (list
-		 (list key-tag           mu4e-tagging--action-tag)
-		 (list key-untag         mu4e-tagging--action-untag)
-		 (list key-query-require mu4e-tagging--action-query-require)
-		 (list key-query-block   mu4e-tagging--action-query-block)))
-	(-let (((keys action) key-action))
-	  ;; Key handler
-	  (define-key mu4e-tagging--dyn-keymap
-		      keys
-		      #'mu4e-tagging--key-handler)
-	  ;; Binding-specific parameters for key handler
-	  (puthash keys
-		   (cons tag-name action)
-		   mu4e-tagging--key-action-table)))
+	        (append
+		   neg-key-bindings
+                   (list
+                     (list key-tag
+			   mu4e-tagging--action-tag)
+                     (list key-untag
+			   mu4e-tagging--action-untag)
+                     (list key-query-require
+			   mu4e-tagging--action-query-require)
+                     (list key-query-block
+			   mu4e-tagging--action-query-block))))
+        (-let (((keys action) key-action))
+          ;; Key handler
+          (define-key mu4e-tagging--dyn-keymap
+                      keys
+                      #'mu4e-tagging--key-handler)
+          ;; Binding-specific parameters for key handler
+          (puthash keys
+                   (cons tag-name action)
+                   mu4e-tagging--key-action-table)))
       tag-pbody-new)))
 
 (defun mu4e-tagging-alloc-default-keys ()
@@ -209,7 +226,7 @@ Plugs in defaults as needed."
                                         :short
                                         tag-short))
               ;; alloc-keys ensures that tag-pbody contains the
-              ;; correct :key value
+              ;; correct :+key value
               (tag-pbody (mu4e-tagging-alloc-keys tag-name
                                                   tag-pbody-pre))
               (is-flag (plist-get tag-pbody :flag))
@@ -366,7 +383,7 @@ plist with tag properties.")
   "Return alist of all category tags.
 
 The alist values are a plists that is guaranteed to contain
-:short and :key, and may contain the optional properties."
+:short and :+key, and may contain the optional properties."
   mu4e-tagging--categories)
 
 
@@ -374,7 +391,7 @@ The alist values are a plists that is guaranteed to contain
   "Return alist of all flag tags.
 
 The value is a plist that is guaranteed to contain :short and
-:key, and may contain the optional properties."
+:+key, and may contain the optional properties."
   mu4e-tagging--flags)
 
 
@@ -892,7 +909,7 @@ The result is a list of five strings for the tag info table:
 4. Current filter status
 5. Long tag name."
   (-let* (((tag-name . tag-pinfo) taginfo)
-          (keybind (plist-get tag-pinfo :key))
+          (keybind (plist-get tag-pinfo :+key))
           (is-flag (plist-get tag-pinfo :flag))
           ;(tagname (plist-get tag-pinfo :tag))
           (short-tagstring (mu4e-tagging-propertized-name tag-name t))
@@ -1059,29 +1076,29 @@ commands, but is overriden by `mu4e-tagging-mode-map'.")
 ;; (tag-name tag-plist is-flag)
 (setq mu4e-tagging--action-tag
       '(:direct  mu4e-tagging--tag
-	:prefix  mu4e-tagging--tag
-	:negated mu4e-tagging--untag))
+        :prefix  mu4e-tagging--tag
+        :negated mu4e-tagging--untag))
 
 ;; Handles a key sequence for an untagging command.  See
 ;; `mu4e-tagging--action-tag'.
 (setq mu4e-tagging--action-untag
       '(:direct  mu4e-tagging--untag
-	:prefix  mu4e-tagging--untag
-	:negated mu4e-tagging--tag))
+        :prefix  mu4e-tagging--untag
+        :negated mu4e-tagging--tag))
 
 ;; Handles a key sequence for querying.  See
 ;; `mu4e-tagging--action-tag'.
 (setq mu4e-tagging--action-query-require
       '(:direct  mu4e-tagging--query-require
-	:prefix  mu4e-tagging--query-unrequire
-	:negated mu4e-tagging--query-block))
+        :prefix  mu4e-tagging--query-unrequire
+        :negated mu4e-tagging--query-block))
 
 ;; (Temporary) Handles a key sequence for querying.  See
 ;; `mu4e-tagging--action-tag'.
 (setq mu4e-tagging--action-query-block
       '(:direct  mu4e-tagging--query-block
-	:prefix  mu4e-tagging--query-unrequire
-	:negated mu4e-tagging--query-require))
+        :prefix  mu4e-tagging--query-unrequire
+        :negated mu4e-tagging--query-require))
 
 
 (defun mu4e-tagging--key-handler (arg)
@@ -1091,23 +1108,23 @@ Uses the most recent key sequence to identify the requested tag,
 and handles C-- and M-u prefix commands."
   (interactive "P")
   (-let* (((tag-name . vtable)
-	     (gethash (this-command-keys-vector)
+             (gethash (this-command-keys-vector)
                       mu4e-tagging--key-action-table))
-	  (tag-info (mu4e-tagging-info tag-name))
-	  (is-flag (mu4e-tagging-flag-tag-p tag-name))
-	  (dispatch-prop (cond
-			  ;; no prefix / prefix 1
-			  ((or (null arg)
-			       (eq arg 1))
-			   :direct)
-			  ;; negative prefix
-			  ((or (eq arg '-)
-			       (eq arg -1))
-			   :negated)
-			  ;; other prefix
-			  (t
-			   :prefix)))
-	  (dispatch-target (plist-get vtable dispatch-prop)))
+          (tag-info (mu4e-tagging-info tag-name))
+          (is-flag (mu4e-tagging-flag-tag-p tag-name))
+          (dispatch-prop (cond
+                          ;; no prefix / prefix 1
+                          ((or (null arg)
+                               (eq arg 1))
+                           :direct)
+                          ;; negative prefix
+                          ((or (eq arg '-)
+                               (eq arg -1))
+                           :negated)
+                          ;; other prefix
+                          (t
+                           :prefix)))
+          (dispatch-target (plist-get vtable dispatch-prop)))
     (apply dispatch-target (list tag-name tag-info is-flag))))
 
 
@@ -1124,7 +1141,7 @@ IS-FLAG stores whether the tag is a flag."
           (tag-remove (if (not is-flag)
                           (mapconcat (lambda (n) (concat "-" n))
                                      (remove
-				        tag-name
+                                        tag-name
                                         (mu4e-tagging--category-tags))
                                      ",")
                         ;; no tags to remove for tag-add
@@ -1249,7 +1266,7 @@ To use:
 3.  Customise `mu4e-tagging-tags' for the tags you want to manage
     in this mode."
   :lighter " tagging"
-  :keymap mu4e-tagging-mode-map
+  :+keymap mu4e-tagging-mode-map
 
   (progn
     (if mu4e-tagging
@@ -1291,16 +1308,17 @@ SYMBOL and VALUE are passed directly to `custom-initialize-reset'."
 
 (defcustom
   mu4e-tagging-tags
-  '((todo :key "+" :short "+" :flag t :foreground "yellow" :background "black")
-    (spam :key "s" :short "SPAM")
-    (regular-mail :key "m" :short "M"))
+  '((todo :+key "+" :short "+" :flag t :foreground "yellow" :background "black")
+    (spam :+key "s" :short "SPAM")
+    (regular-mail :+key "m" :short "M"))
 
   "List of all tags examined by mu4e-tagging-mode.
 
 Tags take the form of alists whose values are plists, of the
-form (TAGNAME :short SHORTNAME :key KEY :flag FLAG :foreground FG
-:background BG :weight WEIGHT :box BOX).  mu4e-tagging-mode will
-use KEY to select this tag and SHORTNAME to display it in the
+form (TAGNAME :short SHORTNAME :+key KEY :-key KEY :flag FLAG
+:foreground FG :background BG :weight WEIGHT :box BOX).
+mu4e-tagging-mode will use :+key to add this tag and
+:-key (optional) to remove it, and SHORTNAME to display it in the
 mu4e-headers view.  Any occurrences of the tag will be rendered
 in the specified FG and BG colours.
 
@@ -1312,7 +1330,11 @@ any category."
                 :value-type
                 (plist :options ((:tag string)
                     (:short string)
-                    (:key   key)
+                    (:+key   key
+                             :doc "Key to add tag")
+                    (:-key   (choice (const nil)
+                                     key)
+                             :doc "Key to remove tag")
                     (:flag  boolean
                             :doc "Non-exclusive, can be toggled")
                     (:foreground (choice (const :tag "none" nil)

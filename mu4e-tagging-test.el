@@ -143,13 +143,15 @@
   "Sets a particualr tags configuration that we use for testing here."
   (customize-set-variable 'mu4e-tagging-tags
                           '(("a"
-                             :key "a"
+                             :+key "a"
+                             :-key "q"
                              :short "A"
                              :flag t
                              :foreground "yellow"
                              :background "black")
                             ("bassoon"
-                             :key "b"
+                             :+key "b"
+                             :-key "z"
                              :short "bas")
                             ("ba")
                             ("chips")
@@ -506,10 +508,9 @@
      (with-mock
       (stub mu4e-message-at-point =>  'my-test-message)
       (mock (mu4e-action-retag-message 'my-test-message "+a"))
-      (execute-kbd-macro "a")
-      ))))
+      (execute-kbd-macro "a")))))
 
-(ert-deftest test-keymap--flag-untag ()
+(ert-deftest test-keymap--flag-untag-minus-prefix ()
   "Key sequence for untagging flags"
   (should-preserve-all-state
    ;; Override all keybindings, for testing
@@ -517,8 +518,28 @@
      (with-mock
       (stub mu4e-message-at-point =>  'my-test-message)
       (mock (mu4e-action-retag-message 'my-test-message "-a"))
-      (execute-kbd-macro "-a")
+      (execute-kbd-macro "-a")))))
+
+(ert-deftest test-keymap--flag-untag-prefix-command ()
+  "Key sequence for untagging flags"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-message-at-point =>  'my-test-message)
+      (mock (mu4e-action-retag-message 'my-test-message "-a"))
+      (execute-kbd-macro "\M--a")
       ))))
+
+(ert-deftest test-keymap--flag-untag-direct ()
+  "Key sequence for untagging flags"
+  (should-preserve-all-state
+   ;; Override all keybindings, for testing
+   (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
+     (with-mock
+      (stub mu4e-message-at-point =>  'my-test-message)
+      (mock (mu4e-action-retag-message 'my-test-message "-a"))
+      (execute-kbd-macro "q")))))
 
 (ert-deftest test-keymap--category-tag ()
   "Key sequence for setting categories"
@@ -528,8 +549,7 @@
      (with-mock
       (stub mu4e-message-at-point =>  'my-test-message)
       (mock (mu4e-action-retag-message 'my-test-message "+bassoon,-ba,-chips"))
-      (execute-kbd-macro "b")
-      ))))
+      (execute-kbd-macro "b")))))
 
 (ert-deftest test-keymap--category-untag ()
   "Key sequence for removing categories"
@@ -647,7 +667,7 @@
      (should (equal nil
                     (mu4e-tagging--query-flags-alist)))
      (should (equal "bassoon"
-		    mu4e-tagging-query-category))
+                    mu4e-tagging-query-category))
      (with-mock
       (stub mu4e-tagging-query-submode-enable)
       (stub mu4e-tagging-query-rerun)
@@ -655,7 +675,7 @@
      (should (equal nil
                     (mu4e-tagging--query-flags-alist)))
      (should (equal nil
-		    mu4e-tagging-query-category)))
+                    mu4e-tagging-query-category)))
    ;; Clean up
    (setq mu4e-tagging-query-category nil)))
 
@@ -671,7 +691,7 @@
      (should (equal nil
                     (mu4e-tagging--query-flags-alist)))
      (should (equal "bassoon"
-		    mu4e-tagging-query-category))
+                    mu4e-tagging-query-category))
      (with-mock
       (stub mu4e-tagging-query-submode-enable)
       (stub mu4e-tagging-query-rerun)
@@ -679,7 +699,7 @@
      (should (equal nil
                     (mu4e-tagging--query-flags-alist)))
      (should (equal "chips"
-		    mu4e-tagging-query-category)))
+                    mu4e-tagging-query-category)))
    ;; Clean up
    (setq mu4e-tagging-query-category nil)))
 
@@ -695,7 +715,7 @@
      (should (equal nil
                     (mu4e-tagging--query-flags-alist)))
      (should (equal 'uncategorized
-		    mu4e-tagging-query-category)))
+                    mu4e-tagging-query-category)))
    ;; Clean up
    (setq mu4e-tagging-query-category nil)))
 

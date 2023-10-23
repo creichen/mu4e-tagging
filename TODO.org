@@ -117,8 +117,11 @@ Key   Flag   Tag  [C-w]
 - State "DONE"       from "TODO"       [2023-10-20 Fri 15:16]
 *** DONE more generic dispatch strategy
 - State "DONE"       from "TODO"       [2023-10-23 Mon 07:58]
-*** TODO :+key :-key for enabling/disabling tags
-*** TODO use prefix commands for untag, remove-filter, negative-filter
+*** DONE :+key :-key for enabling/disabling tags
+- State "DONE"       from "TODO"       [2023-10-23 Mon 08:19]
+*** DONE use prefix commands for untag
+- State "DONE"       from "TODO"       [2023-10-23 Mon 08:20]
+*** TODO use prefix commands for remove-filter, negative-filter
 *** TODO retire generic '-' key optional
 *** TODO advertise other keybindings in tag window
 *** TODO allow negative filters on categories
