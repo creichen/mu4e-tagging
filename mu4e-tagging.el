@@ -509,7 +509,6 @@ variable `mu4e-tagging-query-flags' but in the form of a sorted
 alist, with tag names as keys and '+ or '- as values."
   (let ((tags nil))
     (maphash (lambda (k v)
-	       (message "- push: %s %s" k v)
                (push (cons k v) tags))
              mu4e-tagging-query-flags)
     (sort tags (lambda (a b) (string< (car a) (car b))))))
