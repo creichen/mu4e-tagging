@@ -116,16 +116,6 @@ Key   Flag   Tag  [C-w]
 *** DONE merge the key-tables
 - State "DONE"       from "TODO"       [2023-10-20 Fri 15:16]
 *** TODO more generic dispatch strategy
-;; Maps key vectors to pairs (ACTION . TAG-NAME), When the user
-;; presses a key sequence, `mu4e-tagging--key-dispatch' selects the
-;; appropriate function from ACTION (depending on the prefix commands)
-;; and calls it with the parameter TAG-NAME.
-
-;; See:
-;; - `mu4e-tagging--action-tag'
-;; - `mu4e-tagging--action-untag'
-;; - `mu4e-tagging--action-query-require'
-;; - `mu4e-tagging--action-query-block'
 
 *** TODO :+key :-key for enabling/disabling tags
 *** TODO use prefix commands for untag, remove-filter, negative-filter

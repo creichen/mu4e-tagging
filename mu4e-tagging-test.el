@@ -45,8 +45,8 @@
         mu4e-tagging-mode-map
         mu4e-tagging--dyn-keymap
         mu4e-tagging--known-tags
-        mu4e-tagging-categories-var
-        mu4e-tagging-flags-var
+        mu4e-tagging--categories
+        mu4e-tagging--flags
         mu4e-tagging--key-action-table
         mu4e-tagging-untag-prefix
         mu4e-tagging-tag-info-window
@@ -165,7 +165,7 @@
   (protecting-state
    (setup-test-tags)
    (should (equal '("bassoon" "ba" "chips")
-                  (mu4e-tagging-known-category-tags)))))
+                  (mu4e-tagging--category-tags)))))
 
 (ert-deftest test-customise--known-tags ()
   "Customising the tags generates the correct set of category tags."

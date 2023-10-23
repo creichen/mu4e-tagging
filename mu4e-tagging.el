@@ -68,7 +68,7 @@
   "Remove any category tags for the message at point."
   (interactive)
   (let ((tags-remove (mapconcat (lambda (n) (concat "-" n))
-                                (mu4e-tagging-known-category-tags)
+                                (mu4e-tagging--category-tags)
                                ","))
         (msg (mu4e-message-at-point)))
     (mu4e-action-retag-message msg tags-remove)))
@@ -194,16 +194,13 @@ Returns TAG-PBODY with :key possibly updated.  Throws
               (mu4e-tagging-keyvec mu4e-tagging-uncategorized-suffix)
               'mu4e-tagging-decategorize))
 
-;; Current list of all category tags
-(setq mu4e-tagging-categories-var nil)
-
 (defun mu4e-tagging-update-tags ()
   "Extract all tag information from the user specification.
 
 Plugs in defaults as needed."
   (clrhash mu4e-tagging--key-action-table)
   (clrhash mu4e-tagging--known-tags)
-  ;(setq mu4e-tagging-known-category-tags nil)
+  ;(setq mu4e-tagging--category-tags nil)
   (mu4e-tagging-clear-tagging-dyn-keymap)
   (let ((prefix-key-vec (if (vectorp mu4e-tagging-untag-prefix)
                             mu4e-tagging-untag-prefix
@@ -235,18 +232,14 @@ Plugs in defaults as needed."
             (push tag-info tag-infos-flags)
           ; category:
           (progn
-            ;(push tag-name mu4e-tagging-known-category-tags)
+            ;(push tag-name mu4e-tagging--category-tags)
             (push tag-info tag-infos-categories)))))
     ;; Add the remaining dynamic key bindings
     (mu4e-tagging-alloc-default-keys)
     ;; Store the results
-    (setq mu4e-tagging-categories-var (reverse tag-infos-categories))
-    (setq mu4e-tagging-flags-var (reverse tag-infos-flags))))
+    (setq mu4e-tagging--categories (reverse tag-infos-categories))
+    (setq mu4e-tagging--flags (reverse tag-infos-flags))))
 
-
-(defun mu4e-tagging-known-category-tags ()
-  "All tags that are category tags (list of strings)."
-  (mapcar 'car mu4e-tagging-categories-var))
 
 (setq mu4e-tagging-tag-info-window nil)
 (setq mu4e-tagging-mail-info-window nil)
@@ -372,6 +365,35 @@ plist with tag properties.")
 (defun mu4e-tagging-no-tag-p (tagname)
   "Check if TAGNAME is not managed by `mu4e-tagging-mode'."
   (not (mu4e-tagging-info tagname)))
+
+;; An extension of of `mu4e-tagging-tags` with defaults generated
+;; for missing fields.
+;; Current list of all flag tags
+(setq mu4e-tagging--flags nil)
+
+;; Current list of all category tags
+(setq mu4e-tagging--categories nil)
+
+(defun mu4e-tagging--categories ()
+  "Return alist of all category tags.
+
+The alist values are a plists that is guaranteed to contain
+:short and :key, and may contain the optional properties."
+  mu4e-tagging--categories)
+
+
+(defun mu4e-tagging--flags ()
+  "Return alist of all flag tags.
+
+The value is a plist that is guaranteed to contain :short and
+:key, and may contain the optional properties."
+  mu4e-tagging--flags)
+
+
+(defun mu4e-tagging--category-tags ()
+  "All tags that are category tags (list of strings)."
+  (mapcar 'car mu4e-tagging--categories))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Pretty-printing tags
@@ -515,7 +537,7 @@ function return value, cf. `mu4e-tagging--query-rewrite-mu4e'."
                           (concat "(NOT x:"
                                   cat
                                   ")"))
-                        (mu4e-tagging-known-category-tags)))
+                        (mu4e-tagging--category-tags)))
                ;; Filter: yield only mails with that category
                ((stringp cat-filter)
                 (list (concat "x:" cat-filter)))
@@ -710,7 +732,7 @@ Enable query-submode, if needed."
   (interactive
    (list
     (completing-read "Tag category (\"-\" for uncategorised): "
-                     (cons "" (cons "-" (mu4e-tagging-categories-get)))
+                     (cons "" (cons "-" (mu4e-tagging--categories)))
                      nil
                      t
                      (mu4e-tagging--query-current-category-string)
@@ -993,8 +1015,8 @@ ignored (nil) by the filter."
               (let* ((table-data-main
                       (mapcar #'mu4e-tagging--list-tag-info
                               (append
-                               (mu4e-tagging-categories-get)
-                               (mu4e-tagging-flags-get))))
+                               (mu4e-tagging--categories)
+                               (mu4e-tagging--flags))))
                      ;; prepend "uncategorised" row
                      (table-data
                         (cons
@@ -1079,26 +1101,18 @@ commands, but is overriden by `mu4e-tagging-mode-map'.")
   "Remove all key bindings from `mu4e-tagging--dyn-keymap'."
   (setcdr mu4e-tagging--dyn-keymap (cdr (make-sparse-keymap))))
 
+;; Maps key vectors to pairs (ACTION . TAG-NAME), When the user
+;; presses a key sequence, `mu4e-tagging--key-dispatch' selects the
+;; appropriate function from ACTION (depending on the prefix commands)
+;; and calls it with the parameter TAG-NAME.
+
+;; See:
+;; - `mu4e-tagging--action-tag'
+;; - `mu4e-tagging--action-untag'
+;; - `mu4e-tagging--action-query-require'
+;; - `mu4e-tagging--action-query-block'
 (setq mu4e-tagging--key-action-table
       (make-hash-table :test 'equal))
-
-;; An extension of of `mu4e-tagging-tags` with defaults generated
-;; for missing fields.
-(setq mu4e-tagging-flags-var nil)
-
-(defun mu4e-tagging-categories-get ()
-  "Return alist of all category tags.
-
-The alist values are a plists that is guaranteed to contain
-:short and :key, and may contain the optional properties."
-  mu4e-tagging-categories-var)
-
-(defun mu4e-tagging-flags-get ()
-  "Retur an alist of all flag tags.
-
-The value is a plist that is guaranteed to contain :short and
-:key, and may contain the optional properties."
-  mu4e-tagging-flags-var)
 
 (defun mu4e-tagging--interceptor-tag ()
   "Handle callbacks for tagging from keymap.
@@ -1113,7 +1127,7 @@ Uses the most recent key sequence to identify the requested tag."
           (tag-remove (if (not is-flag)
                           (mapconcat (lambda (n) (concat "-" n))
                                      (remove tag-name
-                                             (mu4e-tagging-known-category-tags))
+                                             (mu4e-tagging--category-tags))
                                      ",")
                         ;; no tags to remove for tag-add
                         ""))
@@ -1136,8 +1150,6 @@ Uses the most recent key sequence to identify the requested tag."
                       mu4e-tagging--key-action-table))
           (msg (mu4e-message-at-point)))
     (mu4e-action-retag-message msg (concat "-" tag-name))))
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Configuration interface
