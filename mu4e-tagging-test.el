@@ -40,6 +40,30 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test harness
 
+;; Test configuration
+(defun setup-test-tags ()
+  "Sets a particualr tags configuration that we use for testing here."
+  (customize-set-variable 'mu4e-tagging-tags
+                          '(("a"
+                             :+key "a"
+                             :-key "q"
+                             :short "A"
+                             :flag t
+                             :foreground "yellow"
+                             :background "black")
+                            ("bassoon"
+                             :+key "b"
+                             :-key "z"
+                             :short "bas")
+                            ("ba")
+                            ("chips")
+                            ("particularly-lengthy"
+                             :short "M"
+                             :flag t
+                             :box t
+                             :weight "ultra-thin"))))
+
+;; Variables to check for modifications
 (setq m4t-test-state-variables
       '(mu4e-tagging-tags
         mu4e-tagging-mode-map
@@ -60,7 +84,6 @@
         mu4e-tagging-query-rewrite-last-original-query
         mu4e-tagging-query-rewrite-last-rewritten-query))
 
-
 (defun m4t-test-state-backup ()
   "Backs up all relevant state into an alist."
   (mapcar (lambda (sym)
@@ -71,7 +94,7 @@
   "Restore all relevant state from an alist passed in BACKUPS."
   (dolist (item backups)
           (-let (((sym . old-binding) item))
-            (setq sym old-binding))))
+            (set sym old-binding)))) ;; BUG: won't work for lexical bindings
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests for test harness
@@ -81,8 +104,7 @@
   (should (equal m4t-test-state-variables
                  (mapcar 'car (m4t-test-state-backup))))
   (dolist (binding (m4t-test-state-backup))
-    (cdr binding))
-  )
+    (cdr binding)))
 
 (ert-deftest test-state-backup-restore ()
   "Restoring protected variables in test harness does not affect backup."
@@ -109,13 +131,15 @@
 
 (defmacro should-preserve-all-state (&rest BODY)
   "Run test in BODY, assert that state of mu4e-tagging is not altered."
+  (setup-test-tags)
   (let ((backup (m4t-test-state-backup)))
     (condition-case result
         `(progn
            ,@BODY)
       (:success (progn
-                  (should (equal backup (m4t-test-state-backup)))
-                  (m4t-test-state-restore backup)
+		  (let ((state-after-test (m4t-test-state-backup)))
+		    (m4t-test-state-restore backup)
+                    (should (equal backup state-after-test)))
                   result))
       (t (progn
            (m4t-test-state-restore backup)
@@ -138,28 +162,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customisation works as intended
-
-(defun setup-test-tags ()
-  "Sets a particualr tags configuration that we use for testing here."
-  (customize-set-variable 'mu4e-tagging-tags
-                          '(("a"
-                             :+key "a"
-                             :-key "q"
-                             :short "A"
-                             :flag t
-                             :foreground "yellow"
-                             :background "black")
-                            ("bassoon"
-                             :+key "b"
-                             :-key "z"
-                             :short "bas")
-                            ("ba")
-                            ("chips")
-                            ("particularly-lengthy"
-                             :short "M"
-                             :flag t
-                             :box t
-                             :weight "ultra-thin"))))
 
 
 (ert-deftest test-customise--category-tags ()
@@ -586,6 +588,8 @@
   "Key sequence for querying for absence of a flag"
   (should-preserve-all-state
    ;; Override all keybindings, for testing
+   (should (equal nil
+                  (mu4e-tagging--query-flags-alist)))
    (let ((overriding-terminal-local-map mu4e-tagging-mode-map))
      (with-mock
       (stub mu4e-tagging-query-submode-enable)
@@ -601,6 +605,7 @@
                       ("particularly-lengthy" . +))
                     (mu4e-tagging--query-flags-alist))))
    ;; Clean up
+   (mu4e-tagging-query-submode-disable)
    (clrhash mu4e-tagging-query-flags)))
 
 (ert-deftest test-keymap--flag-block-permit-require-query ()
