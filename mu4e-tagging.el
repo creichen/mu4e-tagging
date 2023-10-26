@@ -1307,9 +1307,9 @@ SYMBOL and VALUE are passed directly to `custom-initialize-reset'."
 
 (defcustom
   mu4e-tagging-tags
-  '((todo :+key "+" :short "+" :flag t :foreground "yellow" :background "black")
-    (spam :+key "s" :short "SPAM")
-    (regular-mail :+key "m" :short "M"))
+  '(("todo" :+key "+" :short "+" :flag t :foreground "yellow" :background "black")
+    ("spam" :+key "s" :short "SPAM")
+    ("regular-mail" :+key "m" :short "M"))
 
   "List of all tags examined by mu4e-tagging-mode.
 
