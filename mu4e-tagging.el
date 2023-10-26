@@ -1265,7 +1265,7 @@ To use:
 3.  Customise `mu4e-tagging-tags' for the tags you want to manage
     in this mode."
   :lighter " tagging"
-  :+keymap mu4e-tagging-mode-map
+  :keymap mu4e-tagging-mode-map
 
   (progn
     (if mu4e-tagging
