@@ -1,0 +1,33 @@
+* mu4e-tagging mode
+
+~mu4e-tagging~ is a minor mode intended for use on top of ~mu4e~.  It offers:
+- shortcut keybindings for adding/removing tags (out of a predefined category of tags)
+- a custom ~mu4e-headers~ visualisation column, ~short-tags~, that displays shortened (and propertized) tags
+- functions to quickly filter for these predefined tags
+- Two types of tags:
+  - *categorical* tags, which are mutually exclusive with each otehr
+  - *flags*, which can be toggled individually
+
+** Status
+
+Usable (modulo limitations listed below), but:
+- API / configuration interface is still subject to change
+- Documentation consists mostly of docstrings (and the test suite)
+
+** How to use
+
+- Put ~mu4e-tagging.el~ into your load path
+- Require ~mu4e-tagging~
+- Set up ~mu4e-headers-fields~ to display ~short-tags~ as one of the headers
+- Run ~(mu4e-tagging-setup-default-bindings)~ or set up your own bindings
+  - You can then toggle ~mu4e-tagging~ mode by pressing ~C-t~ from within ~mu4e-headers~ mode
+- Customise your ~mu4e-tagging-tags~
+
+** Limitations
+
+Tags are stored in your maildir headers, which means that they most
+likely won't get synchronished with your imap server (I don't know if
+~mu4e~ supports non-IMAP/maildir setups; the situation might be
+different there).
+
+Thus, to synchronise, you may need a custom solution/workaround.
