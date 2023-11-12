@@ -335,7 +335,7 @@ Also call `mu4e-tagging-query-submode-disable'."
   (interactive)
   (if mu4e-tagging
       ;; switch mode off, which automatically calls disbale-handler
-      (mu4e-tagging 'toggle)
+      (mu4e-tagging-mode 'toggle)
     ;; no need to switch mode off, but must still call disbale-handler
     (mu4e-tagging-disable-handler)))
 
@@ -632,7 +632,7 @@ outside of `mu4e-headers-mode')."
              (not mu4e-tagging-mode))
         ;; We got disabled by accident?
         (progn
-          (mu4e-tagging t))
+          (mu4e-tagging-mode t))
       ;; We really aren't needed any more
       (mu4e-tagging-query-submode-disable))))
 
@@ -1250,7 +1250,7 @@ IS-FLAG stores whether the tag is a flag."
   :type 'key
   :group 'mu4e-tagging)
 
-(define-minor-mode mu4e-tagging
+(define-minor-mode mu4e-tagging-mode
         "A minor mode to quickly retag mails.
 
 To use:
@@ -1268,13 +1268,13 @@ To use:
   :keymap mu4e-tagging-mode-map
 
   (progn
-    (if mu4e-tagging
+    (if mu4e-tagging-mode
         (progn
           (mu4e-tagging-enable-handler)
-          (message "mu4e-tagging enabled"))
+          (message "mu4e-tagging-mode enabled"))
       (progn
         (mu4e-tagging-disable-handler)
-        (message "mu4e-tagging disabled")))))
+        (message "mu4e-tagging-mode disabled")))))
 
 (defun mu4e-tagging-setup-default-bindings ()
   "Set default key bindings for `mu4e-tagging-mode'.
@@ -1287,10 +1287,10 @@ and `mu4e-headers-next'."
     (define-key map (kbd "C-t") #'mu4e-tagging-disable)
     (define-key map (kbd "C-w C-w") #'mu4e-tagging-query-clear)
     (define-key map (kbd "C-w C-d") #'mu4e-tagging-query-require-uncategorized)
-    (define-key map (kbd "ESC ESC ESC") #'mu4e-tagging))
+    (define-key map (kbd "ESC ESC ESC") #'mu4e-tagging-mode))
   (add-hook 'mu4e-headers-mode-hook
             (lambda ()
-              (local-set-key (kbd "C-t") 'mu4e-tagging)))
+              (local-set-key (kbd "C-t") 'mu4e-tagging-mode)))
   (advice-add 'mu4e-headers-next
               :after
               #'mu4e-tagging-mail-at-point-changed)
