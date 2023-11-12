@@ -333,7 +333,7 @@ Also call `mu4e-tagging-query-submode-disable'."
 (defun mu4e-tagging-disable ()
   "Ensure that `mu4e-tagging-mode' is disabled."
   (interactive)
-  (if mu4e-tagging
+  (if mu4e-tagging-mode
       ;; switch mode off, which automatically calls disbale-handler
       (mu4e-tagging-mode 'toggle)
     ;; no need to switch mode off, but must still call disbale-handler
