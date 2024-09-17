@@ -399,6 +399,19 @@ The value is a plist that is guaranteed to contain :short and
   "All tags that are category tags (list of strings)."
   (mapcar 'car mu4e-tagging--categories))
 
+(defun mu4e-tagging-query-uncategorized ()
+  "Constructs a mu4e query for uncategorized mails.
+
+Useful e.g. for setting bookmarks."
+  (concat "("
+	  (string-join
+	   (mapcar (lambda (cat)
+		     (concat "(NOT x:"
+			     cat
+			     ")"))
+		   (mu4e-tagging--category-tags))
+	  " AND ")
+	  ")"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Pretty-printing tags
