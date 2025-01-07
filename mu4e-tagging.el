@@ -260,6 +260,11 @@ Shows the buffer in the designated window, if it still exists."
     (let ((buf (get-buffer-create " *mu4e-tagging-mail-info*")))
       (unless
           mu4e-tagging-mail-info-window-buf
+	(with-current-buffer buf
+	  ;; Empty list of asynchronous processes
+	  (make-local-variable 'mu4e-tagging--mail-info-processes)
+	  (setq mu4e-tagging--mail-info-processes
+		nil))
         (set-window-buffer mu4e-tagging-mail-info-window buf t)
         (setq mu4e-tagging-mail-info-window-buf buf))
       buf)))
@@ -815,10 +820,17 @@ Currently hardwired to run `mu4e-search-retun`."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; mail-info buffer
 
+(defun mu4e-tagging--mail-info-default (msg path)
+  (progn
+    (insert "Mailinfo\n")
+    (insert (format "%s" msg))
+    (insert-file-contents path)))
+
 (defun mu4e-tagging-update-mail-info-buf ()
   "Update the tagging-related mail-info buffer displayed to the user."
   (let ((buf (mu4e-tagging-mail-info-buf)))
     (when buf
+      (mu4e-tagging--mail-info-stop-processes)
       (let* ((msg (mu4e-message-at-point))
              (path (when msg
                      (mu4e-message-readable-path))))
@@ -828,12 +840,95 @@ Currently hardwired to run `mu4e-search-retun`."
             (let ((inhibit-read-only t))
               (erase-buffer)
               (if msg
-                  (progn
-                    (insert "Mailinfo\n")
-                    (insert (format "%s" msg))
-                    (insert-file-contents path))
+		  (apply mu4e-tagging-mail-info (list msg path))
                 ;; if msg is NIL:
-                (insert "Nomail")))))))))
+                (insert "no mail")))))))))
+
+(defun mu4e-tagging--process-sentinel (proc event)
+  "Clean up PROC if EVENT is EXIT."
+  (let* ((status (process-status proc))
+	 (custom-postprocess (process-get proc 'output-postprocess))
+	 (overlay (process-get proc 'output-overlay)))
+    (when (eq status 'exit)
+      (let* ((start (overlay-start overlay))
+	     (end (overlay-end overlay)))
+	(with-current-buffer (process-get proc 'output-buffer)
+	  (delete-overlay overlay)
+	  (when custom-postprocess
+	    (let ((inhibit-read-only t))
+	      (apply custom-postprocess
+		     (list
+		      start
+		      end
+		      (process-exit-status proc))))))))))
+
+(defun mu4e-tagging--process-filter (proc output)
+  "Handle asynchronous OUTPUT for PROC."
+  (with-current-buffer (process-get proc 'output-buffer)
+    (let* ((overlay (process-get proc 'output-overlay))
+	   (custom-stylize (process-get proc 'output-stylize))
+	   (overlay-start (overlay-start overlay))
+	   (stylized-output (if (null custom-stylize)
+				output
+			      (apply custom-stylize (list output))))
+	   (pos (overlay-end overlay)))
+      (let ((inhibit-read-only t))
+	(goto-char pos)
+	(insert stylized-output)
+	(move-overlay overlay overlay-start (+ pos (length output)))))))
+
+(defun mu4e-tagging-start-process (name command args &rest display-opts)
+  "Start an asynchronous process running COMMAND with ARGS.
+
+Unlike `start-process', ARGS must be a list.
+NAME is purely informative.
+
+The stdout of the process is appended to the current point in the
+mail info buffer, as it arrives.  If the process is not finished
+before the buffer is closed or refreshed, the process is terminated.
+
+DISPLAY-OPTS can take additional plist-style arguments:
+- :propertize (function): string-to-string function to propertize (etc.)
+  incoming output.  Note that this function may be applied to partial
+  output.
+- :postprocess (function): called after all input has been received;
+  takes four arguments:
+  - `region-start`
+  - `region-end`
+  - `exit-code`, as per `process-exit-status'
+
+All of these are NIL by default.  Any callbacks are called in the
+context of the mail-info buffer, which is writable at that time.
+"
+  (let* ((buffer (mu4e-tagging-mail-info-buf))
+	 (pos (with-current-buffer buffer (point)))
+	 (overlay (make-overlay pos pos buffer nil nil))
+	 (proc (apply #'start-process name buffer command args)))
+    ;; Use an overlay to track the output position
+    (overlay-put overlay 'name name)
+    (process-put proc 'output-buffer buffer)
+    (process-put proc 'output-overlay overlay)
+    (set-process-sentinel proc #'mu4e-tagging--process-sentinel)
+    (set-process-filter proc #'mu4e-tagging--process-filter)
+    (-when-let ((&plist :propertize propertize) display-opts)
+      (process-put proc 'output-stylize propertize)
+      (message "__1 stylize %s -> %s" propertize (process-get proc 'output-stylize))
+      )
+    (-when-let ((&plist :postprocess postprocess) display-opts)
+      (process-put proc 'output-postprocess postprocess)
+      (message "postproc %s -> %s" postprocess (process-get proc 'output-postprocess))
+      )
+    ;; record so we can delete as needed
+    (with-current-buffer buffer
+      (push proc mu4e-tagging--mail-info-processes))))
+
+(defun mu4e-tagging--mail-info-stop-processes ()
+  "Stops all asynchronous mail info processes."
+  (with-current-buffer (mu4e-tagging-mail-info-buf)
+    (dolist (proc mu4e-tagging--mail-info-processes)
+      (delete-process proc))
+    (setq mu4e-tagging--mail-info-processes
+	  nil)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; tag-info buffer
@@ -1241,6 +1336,22 @@ IS-FLAG stores whether the tag is a flag."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Configuration interface
+
+(defcustom mu4e-tagging-mail-info #'mu4e-tagging--mail-info-default
+  "Populate the mail info buffer while hovering over a mail.
+
+Called as (mu4e-tagging-mail-info MSG PATH).  Note that
+(current-buffer) is writable.  To asynchronously insert
+the result of external processes, use
+`mu4e-tagging-start-process'.
+
+Default behaviour is:
+  (progn
+    (insert \"Mailinfo\\n\")
+    (insert (format \"%s\" msg))
+    (insert-file-contents path)))."
+  :type 'function
+  :group 'mu4e-tagging)
 
 (defcustom
   mu4e-tagging-untag-prefix
